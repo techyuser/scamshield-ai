@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --bg-obsidian: #07080d;
+  --bg-obsidian: #06070c;
 }
 
 html,
 body {
   background-color: var(--bg-obsidian);
-  color: #f4f4f5;
+  color: #f4f4f6;
   font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
   scroll-behavior: smooth;
 }
@@ -19,15 +19,48 @@ pre,
 }
 
 .vibe-card {
-  background: rgba(18, 20, 29, 0.68);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  border-radius: 1rem;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.055) 0%,
+    rgba(255, 255, 255, 0.022) 100%
+  );
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 20px 50px -18px rgba(0, 0, 0, 0.65);
+  border-radius: 1.5rem;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-pill:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.glass-pill-active {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.32) 0%,
+    rgba(6, 182, 212, 0.22) 100%
+  );
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 24px -6px rgba(139, 92, 246, 0.35);
 }
 
 .vibe-button-shimmer {
@@ -38,16 +71,34 @@ pre,
   font-weight: 600;
   border-radius: 9999px;
   overflow: hidden;
-  box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 10px 30px -6px rgba(124, 58, 237, 0.55);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-position 0.4s ease;
 }
 
 .vibe-button-shimmer:hover:not(:disabled) {
-  transform: scale(1.03);
+  transform: translateY(-1px) scale(1.02);
   background-position: 100% 50%;
-  box-shadow: 0 0 32px rgba(124, 58, 237, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 14px 34px -4px rgba(124, 58, 237, 0.72);
 }
 
 .vibe-button-shimmer:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98);
+}
+
+@keyframes floatOrb {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18px, -16px, 0) scale(1.05);
+  }
+}
+
+.ambient-orb {
+  animation: floatOrb 14s ease-in-out infinite;
 }

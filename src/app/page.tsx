@@ -35,6 +35,14 @@ import {
   ScanHistoryItem,
 } from "@/types/scamshield";
 
+const CHANNEL_OPTIONS: { id: MessageChannel; label: string }[] = [
+  { id: "whatsapp", label: "WhatsApp" },
+  { id: "sms", label: "SMS" },
+  { id: "job_offer", label: "Job Offer" },
+  { id: "upi", label: "UPI" },
+  { id: "email", label: "Email" },
+];
+
 const INITIAL_DEMO = DEMO_CASES[0];
 const INITIAL_RESULT: AnalyzeResult = {
   ...analyzeMessageDeterministic({
@@ -117,7 +125,10 @@ export default function ScamShieldHome() {
           message: msg,
           result: res,
         };
-        return [next, ...prev.filter((p) => p.message !== msg || p.result.language !== res.language)].slice(0, 5);
+        return [
+          next,
+          ...prev.filter((p) => p.message !== msg || p.result.language !== res.language),
+        ].slice(0, 5);
       });
     },
     []
@@ -183,7 +194,17 @@ export default function ScamShieldHome() {
         setIsScanning(false);
       }
     },
-    [message, channel, senderInfo, language, imagePreview, sessionKey, soundEnabled, pushHistory, showToast]
+    [
+      message,
+      channel,
+      senderInfo,
+      language,
+      imagePreview,
+      sessionKey,
+      soundEnabled,
+      pushHistory,
+      showToast,
+    ]
   );
 
   const loadDemo = useCallback(
@@ -306,33 +327,26 @@ export default function ScamShieldHome() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#07080d]/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.45)]">
+      {/* Floating Frosted Pill Header */}
+      <div className="sticky top-3 z-30 px-4 sm:px-6 pt-1">
+        <header className="max-w-5xl mx-auto h-14 px-4 rounded-full bg-white/[0.045] backdrop-blur-2xl border border-white/[0.11] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_40px_-14px_rgba(0,0,0,0.75)] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center shadow-[0_0_18px_rgba(124,58,237,0.5)]">
               <ShieldAlert className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold tracking-tight text-white text-base">
-                  ScamShield AI
-                </span>
-                <span className="hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-200 border border-violet-400/30">
-                  PromptWars
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 hidden sm:block">
-                WhatsApp, SMS, Job & UPI Fraud Detector
-              </p>
-            </div>
+            <span className="font-bold tracking-tight text-white text-sm sm:text-base">
+              ScamShield AI
+            </span>
+            <span className="hidden sm:inline-flex text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-200 border border-violet-400/30">
+              PromptWars
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setArchModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 text-zinc-200"
+              className="glass-pill hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-200"
             >
               <Cpu className="w-3.5 h-3.5 text-violet-300" />
               AI Guard
@@ -341,7 +355,7 @@ export default function ScamShieldHome() {
             <button
               type="button"
               onClick={() => setKeyModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/[0.04] hover:bg-white/[0.09] border border-white/10"
+              className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium"
               aria-label="Configure AI engine settings"
             >
               <span
@@ -356,7 +370,7 @@ export default function ScamShieldHome() {
                   ? "Gemini 3.5 Flash Lite"
                   : serverGeminiConfigured || sessionKey
                   ? "Gemini Ready"
-                  : "Smart Hybrid Engine"}
+                  : "Smart Hybrid"}
               </span>
               <KeyRound className="w-3 h-3 text-zinc-400" />
             </button>
@@ -364,42 +378,36 @@ export default function ScamShieldHome() {
             <button
               type="button"
               onClick={() => setSoundEnabled((prev) => !prev)}
-              className="p-2 rounded-full bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 text-zinc-300"
+              className="glass-pill p-2 text-zinc-300"
               aria-label={soundEnabled ? "Mute alerts" : "Enable alerts"}
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>
 
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-xs font-medium text-zinc-200"
+              className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-200"
               aria-label="Open command menu"
             >
               <Command className="w-3.5 h-3.5 text-violet-300" />
               <span className="hidden sm:inline">Cmd+K</span>
             </button>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Hero & 1-Click Demo Cases */}
-        <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/25 text-xs font-medium text-violet-200">
-              <Sparkles className="w-3.5 h-3.5 text-violet-300" />
-              Paste any sketchy message or screenshot. Know before you click.
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-              Spot digital scams in seconds.
-            </h1>
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Minimal Centered Hero + Frosted Demo Pills */}
+        <section className="text-center space-y-4">
+          <div className="glass-pill inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-medium text-violet-200 mx-auto">
+            <Sparkles className="w-3.5 h-3.5 text-violet-300" />
+            Paste any sketchy message or screenshot. Know before you click.
           </div>
-
-          <div className="vibe-card px-3.5 py-2.5 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mr-1">
-              Try Demo:
-            </span>
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
+            Spot digital scams in seconds.
+          </h1>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
             {DEMO_CASES.map((demo) => {
               const active = activeCaseId === demo.id;
               return (
@@ -407,10 +415,8 @@ export default function ScamShieldHome() {
                   key={demo.id}
                   type="button"
                   onClick={() => loadDemo(demo)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    active
-                      ? "bg-violet-500/25 text-violet-100 border border-violet-400/50 shadow-[0_0_14px_rgba(139,92,246,0.25)]"
-                      : "bg-white/[0.04] text-zinc-300 hover:bg-white/[0.09] border border-white/10"
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    active ? "glass-pill-active text-white" : "glass-pill text-zinc-300"
                   }`}
                 >
                   {demo.label}
@@ -420,59 +426,54 @@ export default function ScamShieldHome() {
           </div>
         </section>
 
-        {/* Message & Screenshot Input Workbench */}
-        <section className="vibe-card p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div className="sm:col-span-4">
-              <label htmlFor="channel-select" className="text-[11px] text-zinc-400 block mb-1">
-                Where did you get it?
-              </label>
-              <select
-                id="channel-select"
-                value={channel}
-                onChange={(e) => setChannel(e.target.value as MessageChannel)}
-                className="w-full rounded-xl bg-black/45 border border-white/15 px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-violet-400"
-              >
-                <option value="whatsapp">WhatsApp Message</option>
-                <option value="sms">SMS / Text Alert</option>
-                <option value="job_offer">Job / Internship Offer</option>
-                <option value="upi">UPI / Payment Request</option>
-                <option value="email">Email</option>
-              </select>
+        {/* Glass Composer Card */}
+        <section className="vibe-card p-5 lg:p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Pill Channel Switcher */}
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Message channel">
+              {CHANNEL_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setChannel(opt.id)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                    channel === opt.id
+                      ? "glass-pill-active text-white"
+                      : "glass-pill text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
-            <div className="sm:col-span-5">
-              <label htmlFor="sender-input" className="text-[11px] text-zinc-400 block mb-1">
-                Sender Name or Number (optional)
-              </label>
-              <input
-                id="sender-input"
-                value={senderInfo}
-                onChange={(e) => setSenderInfo(e.target.value)}
-                placeholder="e.g. +44 7418..., AD-SBIALR, or Unknown HR"
-                className="w-full rounded-xl bg-black/45 border border-white/15 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-400"
-              />
-            </div>
-            <div className="sm:col-span-3">
-              <span className="text-[11px] text-zinc-400 block mb-1">Output Language</span>
-              <div className="grid grid-cols-2 rounded-xl bg-black/45 border border-white/15 p-0.5">
-                {(["en", "hi"] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    type="button"
-                    onClick={() => handleToggleLanguage(lang)}
-                    className={`py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors ${
-                      language === lang
-                        ? "bg-violet-500/30 text-violet-100"
-                        : "text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <Languages className="w-3 h-3" />
-                    {lang === "en" ? "English" : "हिन्दी"}
-                  </button>
-                ))}
-              </div>
+
+            {/* Bilingual Glass Pill Switch */}
+            <div className="glass-pill p-0.5 flex items-center">
+              {(["en", "hi"] as const).map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => handleToggleLanguage(lang)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${
+                    language === lang
+                      ? "bg-violet-500/35 text-white shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <Languages className="w-3 h-3" />
+                  {lang === "en" ? "English" : "हिन्दी"}
+                </button>
+              ))}
             </div>
           </div>
+
+          <input
+            aria-label="Sender name or number"
+            value={senderInfo}
+            onChange={(e) => setSenderInfo(e.target.value)}
+            placeholder="Optional sender (e.g. +44 7418..., AD-SBIALR, Unknown HR)"
+            className="w-full rounded-full bg-white/[0.03] border border-white/[0.08] px-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-400/60"
+          />
 
           <textarea
             aria-label="Suspicious message text"
@@ -483,7 +484,7 @@ export default function ScamShieldHome() {
             }}
             rows={3}
             placeholder="Paste any suspicious WhatsApp message, SMS, UPI QR request, or job offer here..."
-            className="w-full rounded-xl bg-black/45 border border-white/15 p-3.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-400"
+            className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-400/60"
           />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -498,7 +499,7 @@ export default function ScamShieldHome() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-xs font-medium text-zinc-200"
+                className="glass-pill inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-zinc-200"
               >
                 <ImagePlus className="w-3.5 h-3.5 text-violet-300" />
                 {imagePreview ? imagePreview.name : "Upload Screenshot"}
@@ -507,18 +508,18 @@ export default function ScamShieldHome() {
                 <button
                   type="button"
                   onClick={() => setImagePreview(null)}
-                  className="p-1 rounded-full bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"
+                  className="glass-pill p-1.5 text-rose-300"
                   aria-label="Remove screenshot"
                 >
                   <X className="w-3 h-3" />
                 </button>
               )}
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+              <span className="glass-pill inline-flex items-center gap-1 px-3 py-1">
                 <Link2 className="w-3 h-3 text-cyan-300" /> {result.indicators.urls.length} link(s)
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10">
+              <span className="glass-pill inline-flex items-center gap-1 px-3 py-1">
                 <MessageSquareWarning className="w-3 h-3 text-amber-300" />{" "}
-                {result.indicators.urgencyPhrases.length} pressure cue(s)
+                {result.indicators.urgencyPhrases.length} urgency cue(s)
               </span>
             </div>
 
@@ -529,7 +530,7 @@ export default function ScamShieldHome() {
               className="vibe-button-shimmer inline-flex items-center gap-2 px-6 py-2.5 text-sm disabled:opacity-60"
             >
               <SearchCheck className="w-4 h-4" />
-              {isScanning ? "Scanning Message..." : "Scan Message Now"}
+              {isScanning ? "Scanning..." : "Scan Message Now"}
             </button>
           </div>
         </section>
@@ -537,7 +538,7 @@ export default function ScamShieldHome() {
         {/* Verdict Banner */}
         <VerdictBanner result={result} />
 
-        {/* Detailed Breakdown */}
+        {/* Detailed Frosted Panels */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           <RedFlagPanel message={message} result={result} />
           <ActionPlanPanel
@@ -548,11 +549,11 @@ export default function ScamShieldHome() {
           />
         </section>
 
-        {/* Recent Scans Quick Switcher */}
+        {/* Recent Scans Pill Strip */}
         {history.length > 1 && (
-          <section className="vibe-card p-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5 mr-1">
-              <History className="w-3.5 h-3.5" /> Recent Scans:
+          <section className="vibe-card px-5 py-3.5 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-zinc-400 flex items-center gap-1.5 mr-1">
+              <History className="w-3.5 h-3.5" /> Recent:
             </span>
             {history.map((item) => (
               <button
@@ -565,9 +566,9 @@ export default function ScamShieldHome() {
                   setLanguage(item.result.language);
                   setResult(item.result);
                 }}
-                className="px-3 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 text-xs text-zinc-200 flex items-center gap-2"
+                className="glass-pill px-3 py-1 text-xs text-zinc-200 flex items-center gap-2"
               >
-                <span className="truncate max-w-[160px]">{item.label}</span>
+                <span className="truncate max-w-[150px]">{item.label}</span>
                 <span
                   className={`text-[10px] font-bold ${
                     item.result.verdict === "CRITICAL_SCAM"
@@ -601,7 +602,7 @@ export default function ScamShieldHome() {
       {archModalOpen && <PromptArchitectureModal onClose={() => setArchModalOpen(false)} />}
 
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl bg-[#111420]/95 border border-violet-400/40 text-xs font-medium text-zinc-100 shadow-2xl">
+        <div className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-violet-400/40 text-xs font-medium text-zinc-100 shadow-2xl">
           {toast}
         </div>
       )}
