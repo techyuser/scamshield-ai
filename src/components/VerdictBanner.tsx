@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { AlertOctagon, AlertTriangle, ShieldCheck, ShieldPlus } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { AnalyzeResult } from "@/types/scamshield";
@@ -38,7 +39,7 @@ const VERDICT_THEME = {
 /**
  * Frosted glass verdict banner displaying safety status, animated risk ring, and pipeline pills.
  */
-export function VerdictBanner({ result }: VerdictBannerProps) {
+export const VerdictBanner = memo(function VerdictBanner({ result }: VerdictBannerProps) {
   const theme = VERDICT_THEME[result.verdict];
   const VerdictIcon = theme.Icon;
 
@@ -46,7 +47,7 @@ export function VerdictBanner({ result }: VerdictBannerProps) {
     <section
       className={`vibe-card p-6 lg:p-7 ${theme.glow} space-y-5`}
       aria-live="polite"
-      aria-label="Scan verdict"
+      aria-label="Scan verdict summary"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div className="space-y-2">
@@ -54,7 +55,7 @@ export function VerdictBanner({ result }: VerdictBannerProps) {
             <span
               className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold border backdrop-blur-md ${theme.pill}`}
             >
-              <VerdictIcon className="w-3.5 h-3.5" />
+              <VerdictIcon className="w-3.5 h-3.5" aria-hidden="true" />
               {theme.label}
             </span>
             <span className="glass-pill px-3 py-1 text-xs font-medium text-zinc-200">
@@ -62,14 +63,14 @@ export function VerdictBanner({ result }: VerdictBannerProps) {
             </span>
             {result.promptInjectionBlocked && (
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium bg-violet-500/20 text-violet-200 border border-violet-400/40 backdrop-blur-md">
-                <ShieldPlus className="w-3 h-3" /> AI Override Blocked
+                <ShieldPlus className="w-3 h-3" aria-hidden="true" /> AI Override Blocked
               </span>
             )}
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
             {result.headline}
           </h2>
-          <p className="text-sm text-zinc-300/90 max-w-2xl leading-relaxed">
+          <p className="text-sm text-zinc-200 max-w-2xl leading-relaxed">
             {result.plainEnglishSummary}
           </p>
         </div>
@@ -77,15 +78,14 @@ export function VerdictBanner({ result }: VerdictBannerProps) {
         <div
           className={`rounded-3xl px-6 py-4 text-center shrink-0 min-w-[164px] border backdrop-blur-2xl ${theme.ring}`}
         >
-          <p className="text-[11px] uppercase tracking-widest text-zinc-400">Risk Score</p>
+          <p className="text-[11px] uppercase tracking-widest text-zinc-300">Risk Score</p>
           <p className={`text-3xl font-extrabold mt-0.5 ${theme.scoreColor}`}>
             <AnimatedCounter value={result.riskScore} suffix="/100" />
           </p>
-          <p className="text-[11px] text-zinc-400 mt-0.5">{result.latencyMs}ms scan</p>
+          <p className="text-[11px] text-zinc-300 mt-0.5">{result.latencyMs}ms scan</p>
         </div>
       </div>
 
-      {/* Minimalist Frosted Pipeline Trace Pills */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {result.pipelineTrace.map((step) => (
           <div
@@ -97,19 +97,19 @@ export function VerdictBanner({ result }: VerdictBannerProps) {
               <span
                 className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${
                   step.status === "ALERT"
-                    ? "bg-rose-500/15 text-rose-300 border-rose-400/30"
+                    ? "bg-rose-500/15 text-rose-200 border-rose-400/30"
                     : step.status === "WARN"
-                    ? "bg-amber-500/15 text-amber-300 border-amber-400/30"
-                    : "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
+                    ? "bg-amber-500/15 text-amber-200 border-amber-400/30"
+                    : "bg-emerald-500/15 text-emerald-200 border-emerald-400/30"
                 }`}
               >
                 {step.status}
               </span>
             </div>
-            <p className="text-xs text-zinc-400 leading-relaxed">{step.summary}</p>
+            <p className="text-xs text-zinc-300 leading-relaxed">{step.summary}</p>
           </div>
         ))}
       </div>
     </section>
   );
-}
+});

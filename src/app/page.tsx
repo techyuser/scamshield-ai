@@ -3,24 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import {
-  Command,
-  Cpu,
   History,
   ImagePlus,
-  KeyRound,
   Languages,
   Link2,
   MessageSquareWarning,
   SearchCheck,
-  ShieldAlert,
   Sparkles,
-  Volume2,
-  VolumeX,
   X,
 } from "lucide-react";
 import { ActionPlanPanel } from "@/components/ActionPlanPanel";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { CommandPalette, PaletteAction } from "@/components/CommandPalette";
+import { HeaderNav } from "@/components/HeaderNav";
 import { PromptArchitectureModal } from "@/components/PromptArchitectureModal";
 import { RedFlagPanel } from "@/components/RedFlagPanel";
 import { VerdictBanner } from "@/components/VerdictBanner";
@@ -88,7 +83,9 @@ export default function ScamShieldHome() {
   const [serverGeminiConfigured, setServerGeminiConfigured] = useState(false);
   const [copiedReply, setCopiedReply] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const activeScanAbortRef = useRef<AbortController | null>(null);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -135,6 +132,20 @@ export default function ScamShieldHome() {
     []
   );
 
+  const celebrateIfSafe = useCallback(
+    (analyzed: AnalyzeResult) => {
+      const isSafe = analyzed.verdict === "LOOKS_SAFE";
+      playAlertChime(isSafe, soundEnabled);
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (isSafe && !prefersReducedMotion) {
+        confetti({ particleCount: 55, spread: 60, origin: { y: 0.65 } });
+      }
+    },
+    [soundEnabled]
+  );
+
   const runScan = useCallback(
     async (override?: {
       message: string;
@@ -154,6 +165,10 @@ export default function ScamShieldHome() {
         return;
       }
 
+      activeScanAbortRef.current?.abort();
+      const controller = new AbortController();
+      activeScanAbortRef.current = controller;
+
       setIsScanning(true);
       const reqBody = {
         message: targetMsg,
@@ -171,24 +186,25 @@ export default function ScamShieldHome() {
           method: "POST",
           headers,
           body: JSON.stringify(reqBody),
+          signal: controller.signal,
         });
         const analyzed = res.ok
           ? ((await res.json()) as AnalyzeResult)
           : await analyzeClientFallback(reqBody, sessionKey);
         setResult(analyzed);
         pushHistory(targetLabel, targetMsg, targetChannel, targetSender, analyzed);
-
-        const isSafe = analyzed.verdict === "LOOKS_SAFE";
-        playAlertChime(isSafe, soundEnabled);
-        if (isSafe) {
-          confetti({ particleCount: 55, spread: 60, origin: { y: 0.65 } });
+        celebrateIfSafe(analyzed);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
         }
-      } catch {
         const fallback = await analyzeClientFallback(reqBody, sessionKey);
         setResult(fallback);
         pushHistory(targetLabel, targetMsg, targetChannel, targetSender, fallback);
       } finally {
-        setIsScanning(false);
+        if (activeScanAbortRef.current === controller) {
+          setIsScanning(false);
+        }
       }
     },
     [
@@ -198,8 +214,8 @@ export default function ScamShieldHome() {
       language,
       imagePreview,
       sessionKey,
-      soundEnabled,
       pushHistory,
+      celebrateIfSafe,
       showToast,
     ]
   );
@@ -263,7 +279,7 @@ export default function ScamShieldHome() {
     setTimeout(() => setCopiedReply(false), 1600);
   }, [result.safeReplyDraft, showToast]);
 
-  const handleDownloadReport = () => {
+  const handleDownloadReport = useCallback(() => {
     const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -272,7 +288,7 @@ export default function ScamShieldHome() {
     a.click();
     URL.revokeObjectURL(url);
     showToast("Downloaded scamshield-report.json");
-  };
+  }, [result, showToast]);
 
   const paletteActions: PaletteAction[] = useMemo(
     () => [
@@ -322,98 +338,56 @@ export default function ScamShieldHome() {
     [runScan, loadDemo, language, handleToggleLanguage, handleCopyReply]
   );
 
+  const liveGeminiReady =
+    serverGeminiConfigured || Boolean(sessionKey) || result.engine === "gemini-3.5-flash-lite";
+  const engineName =
+    result.engine === "gemini-3.5-flash-lite"
+      ? "Gemini 3.5 Flash Lite"
+      : liveGeminiReady
+      ? "Gemini Ready"
+      : "Smart Hybrid";
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Floating Frosted Pill Header */}
-      <div className="sticky top-3 z-30 px-4 sm:px-6 pt-1">
-        <header className="max-w-5xl mx-auto h-14 px-4 rounded-full bg-white/[0.045] backdrop-blur-2xl border border-white/[0.11] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_16px_40px_-14px_rgba(0,0,0,0.75)] flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center shadow-[0_0_18px_rgba(124,58,237,0.5)]">
-              <ShieldAlert className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold tracking-tight text-white text-sm sm:text-base">
-              ScamShield AI
-            </span>
-            <span className="hidden sm:inline-flex text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-200 border border-violet-400/30">
-              PromptWars
-            </span>
-          </div>
+      <HeaderNav
+        engineName={engineName}
+        liveGeminiReady={liveGeminiReady}
+        soundEnabled={soundEnabled}
+        onToggleSound={() => setSoundEnabled((prev) => !prev)}
+        onOpenArchitecture={() => setArchModalOpen(true)}
+        onOpenSettings={() => setKeyModalOpen(true)}
+        onOpenPalette={() => setPaletteOpen(true)}
+      />
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setArchModalOpen(true)}
-              className="glass-pill hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-200"
-            >
-              <Cpu className="w-3.5 h-3.5 text-violet-300" />
-              AI Guard
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setKeyModalOpen(true)}
-              className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium"
-              aria-label="Configure AI engine settings"
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  serverGeminiConfigured || sessionKey || result.engine === "gemini-3.5-flash-lite"
-                    ? "bg-emerald-400 animate-pulse"
-                    : "bg-cyan-400"
-                }`}
-              />
-              <span className="hidden md:inline text-zinc-200">
-                {result.engine === "gemini-3.5-flash-lite"
-                  ? "Gemini 3.5 Flash Lite"
-                  : serverGeminiConfigured || sessionKey
-                  ? "Gemini Ready"
-                  : "Smart Hybrid"}
-              </span>
-              <KeyRound className="w-3 h-3 text-zinc-400" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSoundEnabled((prev) => !prev)}
-              className="glass-pill p-2 text-zinc-300"
-              aria-label={soundEnabled ? "Mute alerts" : "Enable alerts"}
-            >
-              {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-200"
-              aria-label="Open command menu"
-            >
-              <Command className="w-3.5 h-3.5 text-violet-300" />
-              <span className="hidden sm:inline">Cmd+K</span>
-            </button>
-          </div>
-        </header>
-      </div>
-
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6 focus:outline-none"
+      >
         {/* Minimal Centered Hero + Frosted Demo Pills */}
         <section className="text-center space-y-4">
           <div className="glass-pill inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-medium text-violet-200 mx-auto">
-            <Sparkles className="w-3.5 h-3.5 text-violet-300" />
+            <Sparkles className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
             Paste any sketchy message or screenshot. Know before you click.
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
             Spot digital scams in seconds.
           </h1>
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+          <div
+            className="flex flex-wrap items-center justify-center gap-2 pt-1"
+            role="group"
+            aria-label="1-click demo scenarios"
+          >
             {DEMO_CASES.map((demo) => {
               const active = activeCaseId === demo.id;
               return (
                 <button
                   key={demo.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => loadDemo(demo)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    active ? "glass-pill-active text-white" : "glass-pill text-zinc-300"
+                    active ? "glass-pill-active text-white" : "glass-pill text-zinc-200"
                   }`}
                 >
                   {demo.label}
@@ -424,19 +398,19 @@ export default function ScamShieldHome() {
         </section>
 
         {/* Glass Composer Card */}
-        <section className="vibe-card p-5 lg:p-6 space-y-4">
+        <section className="vibe-card p-5 lg:p-6 space-y-4" aria-label="Message scanner input">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Pill Channel Switcher */}
             <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Message channel">
               {CHANNEL_OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
                   type="button"
+                  aria-pressed={channel === opt.id}
                   onClick={() => setChannel(opt.id)}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                     channel === opt.id
                       ? "glass-pill-active text-white"
-                      : "glass-pill text-zinc-400 hover:text-zinc-200"
+                      : "glass-pill text-zinc-300 hover:text-white"
                   }`}
                 >
                   {opt.label}
@@ -444,20 +418,20 @@ export default function ScamShieldHome() {
               ))}
             </div>
 
-            {/* Bilingual Glass Pill Switch */}
-            <div className="glass-pill p-0.5 flex items-center">
+            <div className="glass-pill p-0.5 flex items-center" role="group" aria-label="Output language">
               {(["en", "hi"] as const).map((lang) => (
                 <button
                   key={lang}
                   type="button"
+                  aria-pressed={language === lang}
                   onClick={() => handleToggleLanguage(lang)}
                   className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${
                     language === lang
                       ? "bg-violet-500/35 text-white shadow-sm"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      : "text-zinc-300 hover:text-white"
                   }`}
                 >
-                  <Languages className="w-3 h-3" />
+                  <Languages className="w-3 h-3" aria-hidden="true" />
                   {lang === "en" ? "English" : "हिन्दी"}
                 </button>
               ))}
@@ -465,11 +439,11 @@ export default function ScamShieldHome() {
           </div>
 
           <input
-            aria-label="Sender name or number"
+            aria-label="Sender name or phone number"
             value={senderInfo}
             onChange={(e) => setSenderInfo(e.target.value)}
             placeholder="Optional sender (e.g. +44 7418..., AD-SBIALR, Unknown HR)"
-            className="w-full rounded-full bg-white/[0.03] border border-white/[0.08] px-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-400/60"
+            className="w-full rounded-full bg-white/[0.03] border border-white/[0.08] px-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-violet-400/60"
           />
 
           <textarea
@@ -481,15 +455,16 @@ export default function ScamShieldHome() {
             }}
             rows={3}
             placeholder="Paste any suspicious WhatsApp message, SMS, UPI QR request, or job offer here..."
-            className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-400/60"
+            className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-violet-400/60"
           />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-300">
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
+                aria-label="Upload scam screenshot"
                 className="hidden"
                 onChange={handleScreenshotSelect}
               />
@@ -498,7 +473,7 @@ export default function ScamShieldHome() {
                 onClick={() => fileInputRef.current?.click()}
                 className="glass-pill inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-zinc-200"
               >
-                <ImagePlus className="w-3.5 h-3.5 text-violet-300" />
+                <ImagePlus className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
                 {imagePreview ? imagePreview.name : "Upload Screenshot"}
               </button>
               {imagePreview && (
@@ -506,16 +481,17 @@ export default function ScamShieldHome() {
                   type="button"
                   onClick={() => setImagePreview(null)}
                   className="glass-pill p-1.5 text-rose-300"
-                  aria-label="Remove screenshot"
+                  aria-label="Remove uploaded screenshot"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3 h-3" aria-hidden="true" />
                 </button>
               )}
               <span className="glass-pill inline-flex items-center gap-1 px-3 py-1">
-                <Link2 className="w-3 h-3 text-cyan-300" /> {result.indicators.urls.length} link(s)
+                <Link2 className="w-3 h-3 text-cyan-300" aria-hidden="true" />{" "}
+                {result.indicators.urls.length} link(s)
               </span>
               <span className="glass-pill inline-flex items-center gap-1 px-3 py-1">
-                <MessageSquareWarning className="w-3 h-3 text-amber-300" />{" "}
+                <MessageSquareWarning className="w-3 h-3 text-amber-300" aria-hidden="true" />{" "}
                 {result.indicators.urgencyPhrases.length} urgency cue(s)
               </span>
             </div>
@@ -526,17 +502,15 @@ export default function ScamShieldHome() {
               onClick={() => void runScan()}
               className="vibe-button-shimmer inline-flex items-center gap-2 px-6 py-2.5 text-sm disabled:opacity-60"
             >
-              <SearchCheck className="w-4 h-4" />
+              <SearchCheck className="w-4 h-4" aria-hidden="true" />
               {isScanning ? "Scanning..." : "Scan Message Now"}
             </button>
           </div>
         </section>
 
-        {/* Verdict Banner */}
         <VerdictBanner result={result} />
 
-        {/* Detailed Frosted Panels */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-5" aria-label="Detailed analysis">
           <RedFlagPanel message={message} result={result} />
           <ActionPlanPanel
             result={result}
@@ -546,11 +520,10 @@ export default function ScamShieldHome() {
           />
         </section>
 
-        {/* Recent Scans Pill Strip */}
         {history.length > 1 && (
-          <section className="vibe-card px-5 py-3.5 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-zinc-400 flex items-center gap-1.5 mr-1">
-              <History className="w-3.5 h-3.5" /> Recent:
+          <section className="vibe-card px-5 py-3.5 flex flex-wrap items-center gap-2" aria-label="Recent scans">
+            <span className="text-xs font-medium text-zinc-300 flex items-center gap-1.5 mr-1">
+              <History className="w-3.5 h-3.5" aria-hidden="true" /> Recent:
             </span>
             {history.map((item) => (
               <button
@@ -569,10 +542,10 @@ export default function ScamShieldHome() {
                 <span
                   className={`text-[10px] font-bold ${
                     item.result.verdict === "CRITICAL_SCAM"
-                      ? "text-rose-400"
+                      ? "text-rose-300"
                       : item.result.verdict === "SUSPICIOUS"
                       ? "text-amber-300"
-                      : "text-emerald-400"
+                      : "text-emerald-300"
                   }`}
                 >
                   {item.result.riskScore}/100
@@ -582,6 +555,12 @@ export default function ScamShieldHome() {
           </section>
         )}
       </main>
+
+      <footer className="max-w-5xl w-full mx-auto px-4 sm:px-6 pb-8 pt-2 text-center text-xs text-zinc-300">
+        ScamShield AI assists consumer fraud awareness. For active financial fraud in India, call{" "}
+        <strong className="text-zinc-100">1930</strong> or report at{" "}
+        <strong className="text-zinc-100">cybercrime.gov.in</strong>.
+      </footer>
 
       {paletteOpen && (
         <CommandPalette onClose={() => setPaletteOpen(false)} actions={paletteActions} />
@@ -599,7 +578,11 @@ export default function ScamShieldHome() {
       {archModalOpen && <PromptArchitectureModal onClose={() => setArchModalOpen(false)} />}
 
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-violet-400/40 text-xs font-medium text-zinc-100 shadow-2xl">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-full bg-white/[0.08] backdrop-blur-2xl border border-violet-400/40 text-xs font-medium text-zinc-100 shadow-2xl"
+        >
           {toast}
         </div>
       )}

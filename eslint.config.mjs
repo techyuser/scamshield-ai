@@ -21,7 +21,7 @@ const eslintConfig = defineConfig([
       "prefer-const": "error",
     },
   },
-  globalIgnores([".next/**", ".vercel/**", "out/**", "build/**", "netlify-drop/**", ".tmp-api-export-backup/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".vercel/**", "out/**", "build/**", "netlify-drop/**", ".tmp-api-export-backup/**", "playwright-report/**", "test-results/**", "next-env.d.ts"]),
 ]);
 
 export default eslintConfig;

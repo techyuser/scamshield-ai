@@ -19,7 +19,7 @@ async function waitForServer(timeoutMs = 15000) {
   throw new Error("Timed out waiting for ScamShield server");
 }
 
-test("ScamShield AI full verification suite", async (t) => {
+test("ScamShield AI security, SEO, and API verification suite", async (t) => {
   const server = spawn("pnpm", ["exec", "next", "start", "-p", String(PORT), "-H", "127.0.0.1"], {
     stdio: "ignore",
     detached: false,
@@ -31,14 +31,28 @@ test("ScamShield AI full verification suite", async (t) => {
 
   await waitForServer();
 
-  await t.test("GET / serves refactored ScamShield AI UI with Evidence Spotlight", async () => {
+  await t.test("GET / serves UI with security headers and WCAG landmarks", async () => {
     const res = await fetch(`${BASE_URL}/`);
     assert.equal(res.status, 200);
+    assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+    assert.ok(res.headers.get("strict-transport-security"));
+    assert.ok(res.headers.get("content-security-policy"));
+
     const html = await res.text();
     assert.match(html, /ScamShield AI/);
-    assert.match(html, /Spot digital scams in seconds\./);
+    assert.match(html, /Skip to main content/);
     assert.match(html, /Evidence Spotlight/);
-    assert.match(html, /AI Guard/);
+  });
+
+  await t.test("GET /robots.txt and /sitemap.xml return valid metadata", async () => {
+    const [robotsRes, sitemapRes] = await Promise.all([
+      fetch(`${BASE_URL}/robots.txt`),
+      fetch(`${BASE_URL}/sitemap.xml`),
+    ]);
+    assert.equal(robotsRes.status, 200);
+    assert.equal(sitemapRes.status, 200);
+    assert.match(await robotsRes.text(), /Disallow: \/api\//);
+    assert.match(await sitemapRes.text(), /<urlset/);
   });
 
   await t.test("GET /api/health returns healthy status", async () => {
@@ -50,7 +64,14 @@ test("ScamShield AI full verification suite", async (t) => {
     assert.equal(typeof data.serverGeminiConfigured, "boolean");
   });
 
-  await t.test("POST /api/analyze rejects empty text and invalid screenshot MIME", async () => {
+  await t.test("POST /api/analyze rejects malformed JSON, short text, and bad MIME/base64", async () => {
+    const badJson = await fetch(`${BASE_URL}/api/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{bad-json",
+    });
+    assert.equal(badJson.status, 400);
+
     const shortRes = await fetch(`${BASE_URL}/api/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,9 +89,20 @@ test("ScamShield AI full verification suite", async (t) => {
       }),
     });
     assert.equal(mimeRes.status, 400);
+
+    const badB64 = await fetch(`${BASE_URL}/api/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Check attachment",
+        imageBase64: "not valid base64 $$$",
+        imageMimeType: "image/png",
+      }),
+    });
+    assert.equal(badB64.status, 400);
   });
 
-  await t.test("POST /api/analyze flags UPI QR PIN scam & supports caching", async () => {
+  await t.test("POST /api/analyze flags UPI QR PIN scam & hits TTL cache", async () => {
     const payload = {
       channel: "upi",
       senderInfo: "OLX Buyer",
@@ -83,6 +115,7 @@ test("ScamShield AI full verification suite", async (t) => {
       body: JSON.stringify(payload),
     });
     assert.equal(res1.status, 200);
+    assert.equal(res1.headers.get("cache-control"), "no-store");
     const data1 = await res1.json();
     assert.equal(data1.verdict, "CRITICAL_SCAM");
     assert.ok(data1.riskScore >= 65);
@@ -98,7 +131,7 @@ test("ScamShield AI full verification suite", async (t) => {
     assert.equal(data2.latencyMs, 12);
   });
 
-  await t.test("POST /api/analyze blocks prompt-injection bypass attempts inside scam messages", async () => {
+  await t.test("POST /api/analyze neutralizes embedded prompt-injection bypass attempts", async () => {
     const res = await fetch(`${BASE_URL}/api/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -112,6 +145,7 @@ test("ScamShield AI full verification suite", async (t) => {
     const data = await res.json();
     assert.equal(data.promptInjectionBlocked, true);
     assert.equal(data.verdict, "CRITICAL_SCAM");
+    assert.ok(data.riskScore >= 85);
     assert.ok(data.redFlags.some((f) => f.id === "rf-prompt-injection"));
   });
 

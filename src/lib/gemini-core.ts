@@ -3,6 +3,7 @@ import { AnalyzeRequest, AnalyzeResult, ReplyLanguage } from "@/types/scamshield
 import { analyzeMessageDeterministic } from "./heuristic-detector";
 
 export const GEMINI_MODEL_ID = "gemini-3.5-flash-lite";
+const GEMINI_TIMEOUT_MS = 8500;
 
 function extractJsonBlock(raw: string): string {
   const trimmed = raw.trim();
@@ -10,8 +11,24 @@ function extractJsonBlock(raw: string): string {
   return fenced ? fenced[1].trim() : trimmed;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Gemini request timeout")), ms);
+    promise
+      .then((val) => {
+        clearTimeout(timer);
+        resolve(val);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 /**
  * Shared Gemini analysis runner safe for both server routes and static browser deployments.
+ * Enforces an 8.5s timeout, prompt-injection quarantine, and deterministic safety floor.
  */
 export async function runGeminiAnalysis(
   client: GoogleGenAI | null,
@@ -69,16 +86,19 @@ Return ONLY valid JSON matching this schema:
   }
 
   try {
-    const response = await client.models.generateContent({
-      model: GEMINI_MODEL_ID,
-      contents: [{ role: "user", parts }],
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        temperature: 0.2,
-        maxOutputTokens: 1600,
-      },
-    });
+    const response = await withTimeout(
+      client.models.generateContent({
+        model: GEMINI_MODEL_ID,
+        contents: [{ role: "user", parts }],
+        config: {
+          systemInstruction,
+          responseMimeType: "application/json",
+          temperature: 0.2,
+          maxOutputTokens: 1600,
+        },
+      }),
+      GEMINI_TIMEOUT_MS
+    );
 
     const text = response.text;
     if (!text) return fallback;

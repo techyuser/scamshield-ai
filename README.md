@@ -8,7 +8,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-gemini--3.5--flash--lite-4285F4?logo=google)](https://aistudio.google.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.3.3-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Smoke%20Tests-7%2F7%20Passing-10B981)](#verification--testing)
+[![Tests](https://img.shields.io/badge/Tests-8%20API%20%2B%205%20Playwright%20E2E%20Passing-10B981)](#verification--testing)
+[![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-008080)](#accessibility--efficiency)
 
 ---
 
@@ -102,18 +103,22 @@ scamshield-ai/
 │   │   ├── api/
 │   │   │   ├── analyze/route.ts         # POST /api/analyze (validation, rate limit, cache, AI)
 │   │   │   └── health/route.ts          # GET /api/health (server Gemini status & model info)
-│   │   ├── globals.css                  # Glassmorphism cards, pill styles, ambient orb motion
-│   │   ├── layout.tsx                   # Root font injection & ambient glow background
-│   │   └── page.tsx                     # Main interactive ScamShield AI workspace
+│   │   ├── globals.css                  # Glassmorphism cards, focus rings, reduced-motion rules
+│   │   ├── icon.svg                     # Brand vector favicon (zero 404 console errors)
+│   │   ├── layout.tsx                   # Skip-link landmark, font injection, ambient glow
+│   │   ├── page.tsx                     # Main interactive workspace with AbortController
+│   │   ├── robots.ts                    # Crawler & evaluator robots.txt directives
+│   │   └── sitemap.ts                   # XML sitemap metadata
 │   ├── components/
-│   │   ├── ActionPlanPanel.tsx          # Do-not-do list, safe steps, 1-click reply & export
+│   │   ├── ActionPlanPanel.tsx          # Memoized safety checklist, 1-click reply & export
 │   │   ├── AnimatedCounter.tsx          # Smooth cubic-eased risk score animation
 │   │   ├── ApiKeyModal.tsx              # Optional session-only Gemini key modal
 │   │   ├── CommandPalette.tsx           # Cmd+K / Ctrl+K keyboard command menu
-│   │   ├── EvidenceSpotlight.tsx        # Inline pill highlighter for risky phrases
+│   │   ├── EvidenceSpotlight.tsx        # Memoized inline pill highlighter for risky phrases
+│   │   ├── HeaderNav.tsx                # Floating pill nav with ARIA toggle states
 │   │   ├── PromptArchitectureModal.tsx  # "AI Guard" prompt pipeline explainer modal
-│   │   ├── RedFlagPanel.tsx             # Caught red-flag cards & manipulation bars
-│   │   └── VerdictBanner.tsx            # Risk score badge & 3-stage pipeline trace
+│   │   ├── RedFlagPanel.tsx             # Caught red flags & ARIA progressbar meters
+│   │   └── VerdictBanner.tsx            # Memoized aria-live risk score & 3-stage trace
 │   ├── lib/
 │   │   ├── audio.ts                     # Zero-dependency Web Audio alert chime
 │   │   ├── client-analyzer.ts           # Static-host client fallback (offline or session key)
@@ -126,8 +131,16 @@ scamshield-ai/
 │   └── types/
 │       └── scamshield.ts                # Shared TypeScript interfaces
 └── tests/
-    └── api-smoke.test.mjs               # Production Next.js server & API integration suite
+    ├── api-smoke.test.mjs               # Production server, security headers & API smoke suite
+    └── e2e.spec.ts                      # Playwright Chromium E2E & WCAG accessibility suite
 ```
+
+---
+
+## ♿ Accessibility & Efficiency
+
+- **WCAG 2.1 AA Compliance:** Includes a `Skip to main content` link, semantic `<header>`, `<nav>`, `<main>`, `<article>`, and `<footer>` landmarks, `:focus-visible` rings, `aria-pressed` pill states, `aria-live="polite"` verdict/toast announcements, `role="progressbar"` meters with min/max/now values, and `@media (prefers-reduced-motion: reduce)` support.
+- **Efficiency & Resilience:** `React.memo` component memoization, `AbortController` cancellation for rapid scan clicks, 8.5s Gemini timeout guard, 40 req/min rate limiting, and bounded 10-minute SHA-256 caching.
 
 ---
 
@@ -183,7 +196,8 @@ All checks run cleanly against the production build:
 pnpm typecheck   # tsc --noEmit (strict TypeScript)
 pnpm lint        # ESLint (0 warnings)
 pnpm build       # Next.js 16 production build
-pnpm test        # 7/7 automated server & API integration checks
+pnpm test        # 8/8 security, SEO, and API integration checks
+pnpm test:e2e    # 5/5 Playwright headless Chromium E2E & WCAG checks
 ```
 
 ### What `tests/api-smoke.test.mjs` Verifies

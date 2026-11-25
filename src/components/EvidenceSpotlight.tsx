@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Highlighter } from "lucide-react";
 
 interface EvidenceSpotlightProps {
@@ -16,7 +16,11 @@ function escapeRegExp(str: string): string {
 /**
  * Renders the inspected message inside a frosted glass container with flagged tokens styled as pills.
  */
-export function EvidenceSpotlight({ message, terms, isSafe }: EvidenceSpotlightProps) {
+export const EvidenceSpotlight = memo(function EvidenceSpotlight({
+  message,
+  terms,
+  isSafe,
+}: EvidenceSpotlightProps) {
   const segments = useMemo(() => {
     const cleanTerms = terms
       .filter((t) => t.trim().length >= 3)
@@ -39,10 +43,10 @@ export function EvidenceSpotlight({ message, terms, isSafe }: EvidenceSpotlightP
     <div className="rounded-2xl p-4 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] space-y-2.5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-          <Highlighter className="w-3.5 h-3.5 text-violet-300" />
+          <Highlighter className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
           Evidence Spotlight
         </span>
-        <span className="glass-pill px-2.5 py-0.5 text-[11px] text-zinc-300">
+        <span className="glass-pill px-2.5 py-0.5 text-[11px] text-zinc-200">
           {terms.length > 0 && !isSafe ? `${terms.length} flagged cues` : "Clean message"}
         </span>
       </div>
@@ -62,4 +66,4 @@ export function EvidenceSpotlight({ message, terms, isSafe }: EvidenceSpotlightP
       </p>
     </div>
   );
-}
+});

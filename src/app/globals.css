@@ -18,6 +18,11 @@ pre,
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+}
+
 .vibe-card {
   background: linear-gradient(
     180deg,
@@ -101,4 +106,18 @@ pre,
 
 .ambient-orb {
   animation: floatOrb 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .ambient-orb {
+    animation: none;
+  }
+  .vibe-card,
+  .glass-pill,
+  .vibe-button-shimmer {
+    transition: none;
+  }
 }
