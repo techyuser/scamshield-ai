@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --bg-obsidian: #07080d;
+}
+
+html,
+body {
+  background-color: var(--bg-obsidian);
+  color: #f4f4f5;
+  font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  scroll-behavior: smooth;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.vibe-card {
+  background: rgba(18, 20, 29, 0.68);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 1rem;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.vibe-button-shimmer {
+  position: relative;
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #06b6d4 100%);
+  background-size: 200% 200%;
+  color: white;
+  font-weight: 600;
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-position 0.4s ease;
+}
+
+.vibe-button-shimmer:hover:not(:disabled) {
+  transform: scale(1.03);
+  background-position: 100% 50%;
+  box-shadow: 0 0 32px rgba(124, 58, 237, 0.72);
+}
+
+.vibe-button-shimmer:active:not(:disabled) {
+  transform: scale(0.97);
+}
