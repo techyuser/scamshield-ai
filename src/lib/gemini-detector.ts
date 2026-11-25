@@ -103,18 +103,27 @@ Return ONLY valid JSON matching this schema:
       return fallback;
     }
 
+    const geminiFlags = Array.isArray(parsed.redFlags) ? parsed.redFlags : fallback.redFlags;
+    const injectionFlag = fallback.redFlags.find((f) => f.id === "rf-prompt-injection");
+    const mergedFlags =
+      injectionFlag && !geminiFlags.some((f) => f.id === "rf-prompt-injection")
+        ? [injectionFlag, ...geminiFlags]
+        : geminiFlags;
+
     return {
       engine: MODEL_ID,
       latencyMs: Date.now() - startedAt,
       language,
       promptInjectionBlocked: Boolean(parsed.promptInjectionBlocked || fallback.promptInjectionBlocked),
-      verdict: parsed.verdict,
-      riskScore: Math.min(100, Math.max(0, Math.round(parsed.riskScore))),
+      verdict: fallback.promptInjectionBlocked ? "CRITICAL_SCAM" : parsed.verdict,
+      riskScore: fallback.promptInjectionBlocked
+        ? Math.max(85, Math.min(100, Math.round(parsed.riskScore)))
+        : Math.min(100, Math.max(0, Math.round(parsed.riskScore))),
       scamCategory: parsed.scamCategory || fallback.scamCategory,
       headline: parsed.headline || fallback.headline,
       plainEnglishSummary: parsed.plainEnglishSummary,
       tacticScores: parsed.tacticScores || fallback.tacticScores,
-      redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : fallback.redFlags,
+      redFlags: mergedFlags,
       indicators: fallback.indicators,
       highlightedTerms: fallback.highlightedTerms,
       pipelineTrace:

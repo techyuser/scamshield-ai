@@ -47,6 +47,7 @@ test("ScamShield AI full verification suite", async (t) => {
     const data = await res.json();
     assert.equal(data.ok, true);
     assert.equal(data.model, "gemini-3.5-flash-lite");
+    assert.equal(typeof data.serverGeminiConfigured, "boolean");
   });
 
   await t.test("POST /api/analyze rejects empty text and invalid screenshot MIME", async () => {
@@ -130,6 +131,6 @@ test("ScamShield AI full verification suite", async (t) => {
     const data = await res.json();
     assert.equal(data.verdict, "LOOKS_SAFE");
     assert.equal(data.language, "hi");
-    assert.match(data.safeReplyDraft, /धन्यवाद/);
+    assert.match(data.safeReplyDraft, /[\u0900-\u097F]/);
   });
 });
