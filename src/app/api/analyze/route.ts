@@ -1,25 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeMessageWithGemini } from "@/lib/gemini-detector";
-import { AnalyzeRequest } from "@/types/scamshield";
+import { analyzeMessageWithGemini, hasServerGeminiKey } from "@/lib/gemini-detector";
+import {
+  buildCacheKey,
+  checkRateLimit,
+  getCachedAnalysis,
+  setCachedAnalysis,
+  validateAnalyzePayload,
+} from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as Partial<AnalyzeRequest>;
-    if (!body.message || typeof body.message !== "string" || body.message.trim().length < 5) {
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local-client";
+    if (!checkRateLimit(clientIp)) {
       return NextResponse.json(
-        { error: "Please paste a message of at least 5 characters." },
-        { status: 400 }
+        { error: "Rate limit exceeded. Please wait a moment before scanning again." },
+        { status: 429 }
       );
     }
 
-    const sanitized: AnalyzeRequest = {
-      message: body.message.slice(0, 3000),
-      channel: body.channel || "whatsapp",
-      senderInfo: (body.senderInfo || "").slice(0, 120),
-    };
+    const rawBody: unknown = await req.json();
+    const validation = validateAnalyzePayload(rawBody);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
 
     const overrideKey = req.headers.get("x-gemini-key");
-    const result = await analyzeMessageWithGemini(sanitized, overrideKey);
+    const hasLiveKey = Boolean(overrideKey?.trim() || hasServerGeminiKey());
+    const cacheKey = buildCacheKey(validation.data, hasLiveKey);
+    const cached = getCachedAnalysis(cacheKey);
+    if (cached) {
+      return NextResponse.json({ ...cached, latencyMs: 12 });
+    }
+
+    const result = await analyzeMessageWithGemini(validation.data, overrideKey);
+    setCachedAnalysis(cacheKey, result);
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({ error: "Failed to analyze message." }, { status: 500 });

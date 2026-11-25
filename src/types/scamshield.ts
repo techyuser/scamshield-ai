@@ -1,10 +1,14 @@
 export type MessageChannel = "whatsapp" | "sms" | "email" | "job_offer" | "upi";
 export type ScamVerdict = "CRITICAL_SCAM" | "SUSPICIOUS" | "LOOKS_SAFE";
+export type ReplyLanguage = "en" | "hi";
 
 export interface AnalyzeRequest {
   message: string;
   channel: MessageChannel;
   senderInfo?: string;
+  language?: ReplyLanguage;
+  imageBase64?: string;
+  imageMimeType?: string;
 }
 
 export interface RedFlagItem {
@@ -31,8 +35,10 @@ export interface ExtractedIndicators {
 export interface AnalyzeResult {
   engine: "gemini-3.5-flash-lite" | "deterministic-fallback";
   latencyMs: number;
+  language: ReplyLanguage;
+  promptInjectionBlocked: boolean;
   verdict: ScamVerdict;
-  riskScore: number; // 0..100
+  riskScore: number;
   scamCategory: string;
   headline: string;
   plainEnglishSummary: string;
@@ -44,6 +50,7 @@ export interface AnalyzeResult {
   };
   redFlags: RedFlagItem[];
   indicators: ExtractedIndicators;
+  highlightedTerms: string[];
   pipelineTrace: PipelineStepTrace[];
   doNotDo: string[];
   safeNextSteps: string[];
@@ -57,4 +64,13 @@ export interface DemoCase {
   channel: MessageChannel;
   senderInfo: string;
   message: string;
+}
+
+export interface ScanHistoryItem {
+  id: string;
+  label: string;
+  channel: MessageChannel;
+  senderInfo: string;
+  message: string;
+  result: AnalyzeResult;
 }
