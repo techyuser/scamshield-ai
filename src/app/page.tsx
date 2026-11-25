@@ -25,6 +25,7 @@ import { PromptArchitectureModal } from "@/components/PromptArchitectureModal";
 import { RedFlagPanel } from "@/components/RedFlagPanel";
 import { VerdictBanner } from "@/components/VerdictBanner";
 import { playAlertChime } from "@/lib/audio";
+import { analyzeClientFallback } from "@/lib/client-analyzer";
 import { analyzeMessageDeterministic } from "@/lib/heuristic-detector";
 import { DEMO_CASES } from "@/lib/scenarios";
 import {
@@ -154,6 +155,14 @@ export default function ScamShieldHome() {
       }
 
       setIsScanning(true);
+      const reqBody = {
+        message: targetMsg,
+        channel: targetChannel,
+        senderInfo: targetSender,
+        language: targetLang,
+        imageBase64: imagePreview?.base64,
+        imageMimeType: imagePreview?.mimeType,
+      };
       try {
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (sessionKey) headers["x-gemini-key"] = sessionKey;
@@ -161,17 +170,11 @@ export default function ScamShieldHome() {
         const res = await fetch("/api/analyze", {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            message: targetMsg,
-            channel: targetChannel,
-            senderInfo: targetSender,
-            language: targetLang,
-            imageBase64: imagePreview?.base64,
-            imageMimeType: imagePreview?.mimeType,
-          }),
+          body: JSON.stringify(reqBody),
         });
-        if (!res.ok) throw new Error("Scan failed");
-        const analyzed = (await res.json()) as AnalyzeResult;
+        const analyzed = res.ok
+          ? ((await res.json()) as AnalyzeResult)
+          : await analyzeClientFallback(reqBody, sessionKey);
         setResult(analyzed);
         pushHistory(targetLabel, targetMsg, targetChannel, targetSender, analyzed);
 
@@ -181,15 +184,9 @@ export default function ScamShieldHome() {
           confetti({ particleCount: 55, spread: 60, origin: { y: 0.65 } });
         }
       } catch {
-        const fallback = analyzeMessageDeterministic({
-          message: targetMsg,
-          channel: targetChannel,
-          senderInfo: targetSender,
-          language: targetLang,
-        });
+        const fallback = await analyzeClientFallback(reqBody, sessionKey);
         setResult(fallback);
         pushHistory(targetLabel, targetMsg, targetChannel, targetSender, fallback);
-        showToast("Used built-in Offline Fraud Detector.");
       } finally {
         setIsScanning(false);
       }

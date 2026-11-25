@@ -4,6 +4,9 @@
 /.next/
 /out/
 /build
+/netlify-drop/
+/*.zip
+/.tmp-api-export-backup/
 .DS_Store
 *.pem
 npm-debug.log*
