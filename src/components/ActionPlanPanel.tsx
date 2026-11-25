@@ -1,23 +1,27 @@
 "use client";
 
 import { memo } from "react";
-import { Ban, Check, Copy, Download, ShieldCheck } from "lucide-react";
+import { Ban, Check, Copy, Download, Share2, ShieldCheck } from "lucide-react";
 import { AnalyzeResult } from "@/types/scamshield";
 
 interface ActionPlanPanelProps {
   result: AnalyzeResult;
   copiedReply: boolean;
+  copiedAlert: boolean;
   onCopyReply: () => void;
+  onCopyFamilyAlert: () => void;
   onDownloadReport: () => void;
 }
 
 /**
- * Minimal frosted glass consumer safety checklist and 1-click copyable safe reply.
+ * Minimal frosted glass consumer safety checklist, WhatsApp family alert copy, and 1-click safe reply.
  */
 export const ActionPlanPanel = memo(function ActionPlanPanel({
   result,
   copiedReply,
+  copiedAlert,
   onCopyReply,
+  onCopyFamilyAlert,
   onDownloadReport,
 }: ActionPlanPanelProps) {
   return (
@@ -61,9 +65,9 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
       </div>
 
       <div className="vibe-card p-5 lg:p-6 space-y-3.5">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-white">1-Click Safe Reply</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={onCopyReply}
@@ -75,7 +79,20 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
               ) : (
                 <Copy className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
               )}
-              Copy
+              Copy Reply
+            </button>
+            <button
+              type="button"
+              onClick={onCopyFamilyAlert}
+              className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs text-zinc-200"
+              aria-label="Copy WhatsApp family warning alert"
+            >
+              {copiedAlert ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5 text-amber-300" aria-hidden="true" />
+              )}
+              Family Alert
             </button>
             <button
               type="button"

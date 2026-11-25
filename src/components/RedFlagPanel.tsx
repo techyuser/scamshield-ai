@@ -27,6 +27,7 @@ export const RedFlagPanel = memo(function RedFlagPanel({ message, result }: RedF
         <EvidenceSpotlight
           message={message}
           terms={result.highlightedTerms}
+          indicators={result.indicators}
           isSafe={result.verdict === "LOOKS_SAFE"}
         />
 

@@ -59,7 +59,17 @@ test.describe("ScamShield AI — E2E & WCAG Accessibility Suite", () => {
     await expect(page.getByRole("dialog", { name: "Quick actions" })).toHaveCount(0);
   });
 
-  test("5. Mobile viewport (390x844) renders with zero horizontal overflow", async ({ page }) => {
+  test("5. Test AI Override triggers prompt-injection shield and shows extracted entity pills", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    await page.getByRole("button", { name: "Test AI Override" }).click();
+    await expect(page.getByText("AI Override Blocked")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("http://bit.ly/sbi-kyc-verify-now").first()).toBeVisible();
+  });
+
+  test("6. Mobile viewport (390x844) renders with zero horizontal overflow", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
 

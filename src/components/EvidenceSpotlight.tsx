@@ -1,11 +1,13 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import { Highlighter } from "lucide-react";
+import { Coins, Highlighter, Link2, Phone } from "lucide-react";
+import { ExtractedIndicators } from "@/types/scamshield";
 
 interface EvidenceSpotlightProps {
   message: string;
   terms: string[];
+  indicators?: ExtractedIndicators;
   isSafe: boolean;
 }
 
@@ -14,11 +16,12 @@ function escapeRegExp(str: string): string {
 }
 
 /**
- * Renders the inspected message inside a frosted glass container with flagged tokens styled as pills.
+ * Renders the inspected message inside a frosted glass container with flagged tokens and extracted entities styled as pills.
  */
 export const EvidenceSpotlight = memo(function EvidenceSpotlight({
   message,
   terms,
+  indicators,
   isSafe,
 }: EvidenceSpotlightProps) {
   const segments = useMemo(() => {
@@ -39,8 +42,14 @@ export const EvidenceSpotlight = memo(function EvidenceSpotlight({
       }));
   }, [message, terms]);
 
+  const hasEntities =
+    indicators &&
+    (indicators.urls.length > 0 ||
+      indicators.moneyMentions.length > 0 ||
+      indicators.phoneNumbers.length > 0);
+
   return (
-    <div className="rounded-2xl p-4 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] space-y-2.5">
+    <div className="rounded-2xl p-4 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] space-y-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
           <Highlighter className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
@@ -64,6 +73,38 @@ export const EvidenceSpotlight = memo(function EvidenceSpotlight({
           )
         )}
       </p>
+
+      {hasEntities && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-white/[0.06]">
+          {indicators.urls.map((url) => (
+            <span
+              key={url}
+              className="glass-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono text-cyan-200"
+            >
+              <Link2 className="w-3 h-3 text-cyan-300" aria-hidden="true" />
+              {url}
+            </span>
+          ))}
+          {indicators.moneyMentions.map((amt) => (
+            <span
+              key={amt}
+              className="glass-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono text-amber-200"
+            >
+              <Coins className="w-3 h-3 text-amber-300" aria-hidden="true" />
+              {amt}
+            </span>
+          ))}
+          {indicators.phoneNumbers.map((num) => (
+            <span
+              key={num}
+              className="glass-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono text-zinc-200"
+            >
+              <Phone className="w-3 h-3 text-violet-300" aria-hidden="true" />
+              {num}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 });

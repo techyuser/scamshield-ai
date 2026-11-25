@@ -8,7 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-gemini--3.5--flash--lite-4285F4?logo=google)](https://aistudio.google.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.3.3-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Tests-8%20API%20%2B%205%20Playwright%20E2E%20Passing-10B981)](#verification--testing)
+[![Tests](https://img.shields.io/badge/Tests-8%20API%20%2B%206%20Playwright%20E2E%20Passing-10B981)](#verification--testing)
 [![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-008080)](#accessibility--efficiency)
 
 ---
@@ -110,21 +110,26 @@ scamshield-ai/
 │   │   ├── robots.ts                    # Crawler & evaluator robots.txt directives
 │   │   └── sitemap.ts                   # XML sitemap metadata
 │   ├── components/
-│   │   ├── ActionPlanPanel.tsx          # Memoized safety checklist, 1-click reply & export
+│   │   ├── ActionPlanPanel.tsx          # Memoized safety checklist, family alert & reply
 │   │   ├── AnimatedCounter.tsx          # Smooth cubic-eased risk score animation
 │   │   ├── ApiKeyModal.tsx              # Optional session-only Gemini key modal
 │   │   ├── CommandPalette.tsx           # Cmd+K / Ctrl+K keyboard command menu
-│   │   ├── EvidenceSpotlight.tsx        # Memoized inline pill highlighter for risky phrases
+│   │   ├── EvidenceSpotlight.tsx        # Inline pill highlighter + extracted entity chips
 │   │   ├── HeaderNav.tsx                # Floating pill nav with ARIA toggle states
+│   │   ├── MessageComposer.tsx          # Channel/language pills, screenshot preview & tester
 │   │   ├── PromptArchitectureModal.tsx  # "AI Guard" prompt pipeline explainer modal
+│   │   ├── RecentScansBar.tsx           # Recent 5 scans quick-compare pill strip
 │   │   ├── RedFlagPanel.tsx             # Caught red flags & ARIA progressbar meters
 │   │   └── VerdictBanner.tsx            # Memoized aria-live risk score & 3-stage trace
+│   ├── hooks/
+│   │   └── useScamScanner.ts            # Scan orchestration, AbortController & history state
 │   ├── lib/
 │   │   ├── audio.ts                     # Zero-dependency Web Audio alert chime
 │   │   ├── client-analyzer.ts           # Static-host client fallback (offline or session key)
 │   │   ├── gemini-core.ts               # Shared Gemini prompt builder & safety-floor merger
 │   │   ├── gemini-detector.ts           # Server-side Gemini wrapper reading GEMINI_API_KEY
-│   │   ├── heuristic-detector.ts        # Deterministic fraud analyzer & EN/HI guidance
+│   │   ├── heuristic-detector.ts        # Deterministic fraud analyzer & entity extraction
+│   │   ├── localized-guidance.ts        # Bilingual English / Hindi safety guidance templates
 │   │   ├── scam-rules.ts                # Declarative SCAM_RULES table (UPI, job, OTP, injection)
 │   │   ├── scenarios.ts                 # 4 pre-seeded 1-click judge demo cases
 │   │   └── validation.ts                # Payload validator, rate limiter, SHA-256 TTL cache
@@ -197,7 +202,7 @@ pnpm typecheck   # tsc --noEmit (strict TypeScript)
 pnpm lint        # ESLint (0 warnings)
 pnpm build       # Next.js 16 production build
 pnpm test        # 8/8 security, SEO, and API integration checks
-pnpm test:e2e    # 5/5 Playwright headless Chromium E2E & WCAG checks
+pnpm test:e2e    # 6/6 Playwright headless Chromium E2E & WCAG checks
 ```
 
 ### What `tests/api-smoke.test.mjs` Verifies
