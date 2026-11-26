@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import { Coins, Highlighter, Link2, Phone } from "lucide-react";
-import { ExtractedIndicators } from "@/types/scamshield";
+import { Coins, Globe, Highlighter, Link2, Phone } from "lucide-react";
+import type { ExtractedIndicators } from "@/types/scamshield";
 
 interface EvidenceSpotlightProps {
   message: string;
@@ -42,19 +42,21 @@ export const EvidenceSpotlight = memo(function EvidenceSpotlight({
       }));
   }, [message, terms]);
 
+  const domains = indicators?.domains ?? [];
   const hasEntities =
     indicators &&
     (indicators.urls.length > 0 ||
+      domains.length > 0 ||
       indicators.moneyMentions.length > 0 ||
       indicators.phoneNumbers.length > 0);
 
   return (
     <div className="rounded-2xl p-4 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+        <h3 className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
           <Highlighter className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
           Evidence Spotlight
-        </span>
+        </h3>
         <span className="glass-pill px-2.5 py-0.5 text-[11px] text-zinc-200">
           {terms.length > 0 && !isSafe ? `${terms.length} flagged cues` : "Clean message"}
         </span>
@@ -63,13 +65,13 @@ export const EvidenceSpotlight = memo(function EvidenceSpotlight({
         {segments.map((seg, idx) =>
           seg.highlighted ? (
             <mark
-              key={idx}
+              key={`mark-${idx}-${seg.text.slice(0, 12)}`}
               className="inline-block px-2 py-0.5 mx-0.5 rounded-full bg-rose-500/20 text-rose-200 border border-rose-400/35 font-medium backdrop-blur-md"
             >
               {seg.text}
             </mark>
           ) : (
-            <span key={idx}>{seg.text}</span>
+            <span key={`seg-${idx}-${seg.text.slice(0, 12)}`}>{seg.text}</span>
           )
         )}
       </p>
@@ -83,6 +85,15 @@ export const EvidenceSpotlight = memo(function EvidenceSpotlight({
             >
               <Link2 className="w-3 h-3 text-cyan-300" aria-hidden="true" />
               {url}
+            </span>
+          ))}
+          {domains.map((domain) => (
+            <span
+              key={domain}
+              className="glass-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono text-violet-200"
+            >
+              <Globe className="w-3 h-3 text-violet-300" aria-hidden="true" />
+              {domain}
             </span>
           ))}
           {indicators.moneyMentions.map((amt) => (

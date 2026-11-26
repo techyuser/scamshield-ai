@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { History } from "lucide-react";
-import { ScanHistoryItem } from "@/types/scamshield";
+import type { ScanHistoryItem } from "@/types/scamshield";
 
 interface RecentScansBarProps {
   history: ScanHistoryItem[];

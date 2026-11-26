@@ -1,4 +1,4 @@
-import { RedFlagItem } from "@/types/scamshield";
+import type { RedFlagItem } from "@/types/scamshield";
 
 export interface ScamRule {
   id: string;
@@ -20,8 +20,10 @@ export const SCAM_RULES: ScamRule[] = [
     tactic: "AI Filter Bypass Attempt",
     severity: "HIGH",
     weight: 45,
-    pattern: /(ignore (all )?previous instructions|mark (this|message) as safe|riskscore\s*[:=]\s*0|system prompt)/i,
-    snippetPattern: /.{0,20}(?:ignore (?:all )?previous instructions|mark (?:this|message) as safe|riskscore\s*[:=]\s*0|system prompt).{0,25}/i,
+    pattern:
+      /(ignore (all )?previous instructions|mark (this|message) as safe|riskscore\s*[:=]\s*0|system prompt|override (safety|instructions))/i,
+    snippetPattern:
+      /.{0,20}(?:ignore (?:all )?previous instructions|mark (?:this|message) as safe|riskscore\s*[:=]\s*0|system prompt|override (?:safety|instructions)).{0,25}/i,
     fallbackSnippet: "Embedded AI override instruction",
     explanation:
       "The message contains hidden instructions attempting to trick AI scam filters into marking a dangerous message as safe.",
@@ -42,8 +44,10 @@ export const SCAM_RULES: ScamRule[] = [
     tactic: "Advance-Fee / Task Scam",
     severity: "HIGH",
     weight: 38,
-    pattern: /(security deposit|registration fee|refundable.*fee|vip.*task|liking youtube|earn.*daily|prepaid task|double your)/i,
-    snippetPattern: /.{0,25}(?:security deposit|refundable|vip.*task|liking youtube|earn.*daily|prepaid task).{0,25}/i,
+    pattern:
+      /(security deposit|registration fee|refundable.*fee|vip.*task|liking youtube|earn.*daily|prepaid task|double your)/i,
+    snippetPattern:
+      /.{0,25}(?:security deposit|refundable|vip.*task|liking youtube|earn.*daily|prepaid task).{0,25}/i,
     fallbackSnippet: "Upfront deposit for guaranteed daily earnings",
     explanation:
       "Real employers never ask you to pay a deposit to unlock salary or pay ₹3,500–₹8,000/day just for liking videos.",
@@ -75,8 +79,10 @@ export const SCAM_RULES: ScamRule[] = [
     tactic: "Panic & Time-Pressure Trap",
     severity: "MEDIUM",
     weight: 22,
-    pattern: /(immediately|urgent|within \d+ hours?|tonight|blocked|suspended|freeze|legal action|last warning|right now)/i,
-    snippetPattern: /.{0,20}(?:blocked|suspended|within \d+ hours?|tonight|immediately|legal action|last warning).{0,20}/i,
+    pattern:
+      /(immediately|urgent|within \d+ hours?|tonight|blocked|suspended|freeze|legal action|last warning|right now)/i,
+    snippetPattern:
+      /.{0,20}(?:blocked|suspended|within \d+ hours?|tonight|immediately|legal action|last warning).{0,20}/i,
     fallbackSnippet: "Urgent threat / countdown",
     explanation:
       "Scammers create fake countdowns ('blocked tonight', 'within 2 hours') so you panic and click before double-checking.",

@@ -1,4 +1,4 @@
-import { RedFlagItem, ReplyLanguage, ScamVerdict } from "@/types/scamshield";
+import type { AnalyzeResult, RedFlagItem, ReplyLanguage, ScamVerdict } from "@/types/scamshield";
 
 export interface LocalizedGuidance {
   headline: string;
@@ -7,6 +7,15 @@ export interface LocalizedGuidance {
   safeNextSteps: string[];
   safeReplyDraft: string;
 }
+
+const HINDI_CATEGORY_LABELS: Record<string, string> = {
+  "Verified Informational Notice": "प्रमाणित सामान्य सूचना",
+  "UPI / Payment Collect Fraud": "UPI / भुगतान धोखाधड़ी",
+  "Fake Part-Time Job / Task Scam": "फर्जी पार्ट-टाइम नौकरी / टास्क ठगी",
+  "Bank / KYC Phishing Attack": "बैंक / KYC फ़िशिंग हमला",
+  "Adversarial Filter-Bypass Scam": "AI फ़िल्टर चकमा देने वाली ठगी",
+  "Social Engineering / Suspicious Outreach": "संदिग्ध सोशल इंजीनियरिंग संदेश",
+};
 
 const HINDI_SAFE_GUIDANCE: LocalizedGuidance = {
   headline: "सुरक्षित संदेश: कोई ठगी का संकेत नहीं मिला।",
@@ -37,6 +46,14 @@ const ENGLISH_SAFE_GUIDANCE: LocalizedGuidance = {
 };
 
 /**
+ * Translates canonical category names into Hindi when Hindi guidance is selected.
+ */
+export function localizeCategoryLabel(category: string, lang: ReplyLanguage): string {
+  if (lang === "en") return category;
+  return HINDI_CATEGORY_LABELS[category] || category;
+}
+
+/**
  * Returns plain-language safety guidance and reply templates in English or Hindi.
  */
 export function buildLocalizedGuidance(
@@ -47,11 +64,12 @@ export function buildLocalizedGuidance(
 ): LocalizedGuidance {
   if (lang === "hi") {
     if (verdict === "LOOKS_SAFE") return HINDI_SAFE_GUIDANCE;
+    const hindiCategory = localizeCategoryLabel(scamCategory, "hi");
 
     return {
       headline:
         verdict === "CRITICAL_SCAM"
-          ? `खतरा: यह एक ${scamCategory} है।`
+          ? `खतरा: यह एक ${hindiCategory} है।`
           : "सावधान: संदिग्ध और दबाव बनाने वाले संकेत मिले हैं।",
       plainEnglishSummary:
         verdict === "CRITICAL_SCAM"
@@ -74,6 +92,11 @@ export function buildLocalizedGuidance(
 
   if (verdict === "LOOKS_SAFE") return ENGLISH_SAFE_GUIDANCE;
 
+  const tactics = redFlags
+    .slice(0, 2)
+    .map((r) => r.tactic.toLowerCase())
+    .join(" and ");
+
   return {
     headline:
       verdict === "CRITICAL_SCAM"
@@ -81,10 +104,7 @@ export function buildLocalizedGuidance(
         : "Caution: Unverified claims or pressure tactics found.",
     plainEnglishSummary:
       verdict === "CRITICAL_SCAM"
-        ? `Do NOT pay, click links, or share any PIN/OTP. This message combines ${redFlags
-            .slice(0, 2)
-            .map((r) => r.tactic.toLowerCase())
-            .join(" and ")} to steal money or credentials.`
+        ? `Do NOT pay, click links, or share any PIN/OTP. This message combines ${tactics || "pressure tactics"} to steal money or credentials.`
         : "Something feels off—verify directly through the official company app or helpline before taking action.",
     doNotDo: [
       "Do NOT click any shortened or http:// links in this message.",
@@ -99,4 +119,15 @@ export function buildLocalizedGuidance(
     safeReplyDraft:
       "I do not click external links, pay deposits, or share UPI PINs/OTPs over messages. Please do not contact me again—this number is being blocked and reported.",
   };
+}
+
+/**
+ * Formats a shareable plain-text WhatsApp family warning from an analysis result.
+ */
+export function formatFamilyWarningAlert(result: AnalyzeResult): string {
+  const firstWarning = result.doNotDo[0] || "";
+  if (result.language === "hi") {
+    return `⚠️ *ScamShield AI चेतावनी (${result.riskScore}/100 जोखिम)*\n${result.headline}\n\n${result.plainEnglishSummary}\n\n• ${firstWarning}\n• साइबर अपराध रिपोर्ट करें: cybercrime.gov.in या 1930`;
+  }
+  return `⚠️ *ScamShield AI Alert (${result.riskScore}/100 Risk)*\n${result.headline}\n\n${result.plainEnglishSummary}\n\n• ${firstWarning}\n• Report fraud in India: cybercrime.gov.in or call 1930`;
 }

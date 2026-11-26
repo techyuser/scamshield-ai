@@ -1,4 +1,4 @@
-import { DemoCase } from "@/types/scamshield";
+import type { DemoCase } from "@/types/scamshield";
 
 export const DEMO_CASES: DemoCase[] = [
   {

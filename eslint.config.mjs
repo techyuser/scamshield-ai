@@ -15,13 +15,24 @@ const eslintConfig = defineConfig([
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        { prefer: "type-imports", fixStyle: "separate-type-imports" },
+      ],
       eqeqeq: ["error", "always", { null: "ignore" }],
       "no-alert": "error",
+      "no-console": "warn",
       "no-var": "error",
       "prefer-const": "error",
     },
   },
-  globalIgnores([".next/**", ".vercel/**", "out/**", "build/**", "netlify-drop/**", ".tmp-api-export-backup/**", "playwright-report/**", "test-results/**", "next-env.d.ts"]),
+  {
+    files: ["scripts/**/*.mjs"],
+    rules: {
+      "no-console": "off",
+    },
+  },
+  globalIgnores([".next/**", ".vercel/**", "out/**", "build/**", "netlify-drop/**", ".tmp-api-export-backup/**", "coverage/**", "playwright-report/**", "test-results/**", "next-env.d.ts"]),
 ]);
 
 export default eslintConfig;

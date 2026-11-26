@@ -8,8 +8,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-gemini--3.5--flash--lite-4285F4?logo=google)](https://aistudio.google.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.3.3-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Tests-8%20API%20%2B%206%20Playwright%20E2E%20Passing-10B981)](#verification--testing)
-[![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-008080)](#accessibility--efficiency)
+[![Tests](https://img.shields.io/badge/Tests-6%20Unit%20%2B%208%20API%20%2B%206%20Playwright%20Axe-10B981)](#verification--testing)
+[![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.2%20AA%20Verified-008080)](#accessibility--efficiency)
 
 ---
 
@@ -85,7 +85,7 @@ What happens if a scammer embeds an adversarial prompt inside a phishing SMS, su
 | **Styling** | Tailwind CSS `4.3.3`, `Plus Jakarta Sans`, `JetBrains Mono` | Minimalist frosted glassmorphism & pill UI |
 | **AI Engine** | `@google/genai` `3.6.1` (`gemini-3.5-flash-lite`) | Structured JSON & multimodal screenshot analysis |
 | **Icons & Feedback** | `lucide-react`, `canvas-confetti`, Web Audio API | Crisp iconography and tactile feedback |
-| **Testing** | Node built-in test runner (`node --test`) | End-to-end production server & API smoke suite |
+| **Testing & A11y** | Node `--test` + `--experimental-test-coverage`, Playwright, `@axe-core/playwright` | Unit, V8 coverage, API smoke & WCAG 2.2 AA E2E verification |
 
 ---
 
@@ -110,42 +110,50 @@ scamshield-ai/
 │   │   ├── robots.ts                    # Crawler & evaluator robots.txt directives
 │   │   └── sitemap.ts                   # XML sitemap metadata
 │   ├── components/
+│   │   ├── ui/
+│   │   │   └── AccessibleDialog.tsx     # Shared Escape, Tab-trap & focus-restoring dialog
 │   │   ├── ActionPlanPanel.tsx          # Memoized safety checklist, family alert & reply
 │   │   ├── AnimatedCounter.tsx          # Smooth cubic-eased risk score animation
 │   │   ├── ApiKeyModal.tsx              # Optional session-only Gemini key modal
-│   │   ├── CommandPalette.tsx           # Cmd+K / Ctrl+K keyboard command menu
-│   │   ├── EvidenceSpotlight.tsx        # Inline pill highlighter + extracted entity chips
-│   │   ├── HeaderNav.tsx                # Floating pill nav with ARIA toggle states
-│   │   ├── MessageComposer.tsx          # Channel/language pills, screenshot preview & tester
+│   │   ├── CommandPalette.tsx           # Cmd+K / Ctrl+K keyboard listbox command menu
+│   │   ├── EvidenceSpotlight.tsx        # Inline pill highlighter + domain/entity chips
+│   │   ├── HeaderNav.tsx                # Floating pill nav with WCAG 2.5.3 labels
+│   │   ├── MessageComposer.tsx          # Channel/language pills, validation, Clear & upload
 │   │   ├── PromptArchitectureModal.tsx  # "AI Guard" prompt pipeline explainer modal
 │   │   ├── RecentScansBar.tsx           # Recent 5 scans quick-compare pill strip
 │   │   ├── RedFlagPanel.tsx             # Caught red flags & ARIA progressbar meters
 │   │   └── VerdictBanner.tsx            # Memoized aria-live risk score & 3-stage trace
 │   ├── hooks/
-│   │   └── useScamScanner.ts            # Scan orchestration, AbortController & history state
+│   │   └── useScamScanner.ts            # Scan orchestration, AbortController, Clear & history
 │   ├── lib/
 │   │   ├── audio.ts                     # Zero-dependency Web Audio alert chime
 │   │   ├── client-analyzer.ts           # Static-host client fallback (offline or session key)
-│   │   ├── gemini-core.ts               # Shared Gemini prompt builder & safety-floor merger
+│   │   ├── constants.ts                 # Centralized limits, thresholds & Gemini model ID
+│   │   ├── env.ts                       # Sanitized server/session key lookup helpers
+│   │   ├── gemini-core.ts               # Gemini prompt builder, payload sanitizer & safety floor
 │   │   ├── gemini-detector.ts           # Server-side Gemini wrapper reading GEMINI_API_KEY
-│   │   ├── heuristic-detector.ts        # Deterministic fraud analyzer & entity extraction
-│   │   ├── localized-guidance.ts        # Bilingual English / Hindi safety guidance templates
+│   │   ├── heuristic-detector.ts        # Deterministic fraud analyzer & defanged domain parser
+│   │   ├── localized-guidance.ts        # Bilingual English / Hindi safety & alert formatting
 │   │   ├── scam-rules.ts                # Declarative SCAM_RULES table (UPI, job, OTP, injection)
 │   │   ├── scenarios.ts                 # 4 pre-seeded 1-click judge demo cases
-│   │   └── validation.ts                # Payload validator, rate limiter, SHA-256 TTL cache
+│   │   └── validation.ts                # Binary magic-byte check, rate limiter & TTL cache
 │   └── types/
-│       └── scamshield.ts                # Shared TypeScript interfaces
+│       └── scamshield.ts                # Shared TypeScript unions and interfaces
+├── docs/
+│   └── QUALITY_REPORT.md                # Requirements traceability, coverage & verification report
 └── tests/
+    ├── ts-loader.mjs                    # Node 24 TypeScript path-alias & extension hook
+    ├── unit.test.ts                     # Core logic, security & mocked-Gemini unit tests
     ├── api-smoke.test.mjs               # Production server, security headers & API smoke suite
-    └── e2e.spec.ts                      # Playwright Chromium E2E & WCAG accessibility suite
+    └── e2e.spec.ts                      # Playwright Chromium E2E & @axe-core WCAG 2.2 AA suite
 ```
 
 ---
 
 ## ♿ Accessibility & Efficiency
 
-- **WCAG 2.1 AA Compliance:** Includes a `Skip to main content` link, semantic `<header>`, `<nav>`, `<main>`, `<article>`, and `<footer>` landmarks, `:focus-visible` rings, `aria-pressed` pill states, `aria-live="polite"` verdict/toast announcements, `role="progressbar"` meters with min/max/now values, and `@media (prefers-reduced-motion: reduce)` support.
-- **Efficiency & Resilience:** `React.memo` component memoization, `AbortController` cancellation for rapid scan clicks, 8.5s Gemini timeout guard, 40 req/min rate limiting, and bounded 10-minute SHA-256 caching.
+- **WCAG 2.2 AA Audited:** Verified with `@axe-core/playwright` (`0` violations across desktop, mobile, Hindi UI, Command Palette, and modal dialogs), including a `Skip to main content` link, semantic landmarks, focus-trapped modals with `Escape` focus restoration, WCAG 2.5.3 aligned button labels, inline `aria-invalid`/`role="alert"` validation, `role="progressbar"` meters, and `@media (prefers-reduced-motion: reduce)` support.
+- **Efficiency & Security:** `React.memo` component memoization, `AbortController` cleanup across unmounts and rapid clicks, 8.5s Gemini timeout guard, PNG/JPEG/WebP magic-byte verification, `413` body-size enforcement, prototype-key rejection, `X-RateLimit-*` / `Retry-After` headers, and bounded 10-minute SHA-256 caching. See [docs/QUALITY_REPORT.md](docs/QUALITY_REPORT.md) for the full traceability and verification breakdown.
 
 ---
 
@@ -198,20 +206,19 @@ Creates a self-contained static site inside `netlify-drop/` and `scamshield-netl
 All checks run cleanly against the production build:
 
 ```bash
-pnpm typecheck   # tsc --noEmit (strict TypeScript)
-pnpm lint        # ESLint (0 warnings)
-pnpm build       # Next.js 16 production build
-pnpm test        # 8/8 security, SEO, and API integration checks
-pnpm test:e2e    # 6/6 Playwright headless Chromium E2E & WCAG checks
+pnpm typecheck      # tsc --noEmit (strict TypeScript)
+pnpm lint           # ESLint (0 warnings, consistent type imports)
+pnpm test:coverage  # Node 24 V8 coverage across core src/lib modules
+pnpm build          # Next.js 16 production build
+pnpm test           # Unit + security, SEO & API integration test suites
+pnpm test:e2e       # Playwright Chromium E2E + @axe-core WCAG 2.2 AA checks
+pnpm audit          # Dependency vulnerability check
 ```
 
-### What `tests/api-smoke.test.mjs` Verifies
-1. `GET /` renders the ScamShield AI UI including *Evidence Spotlight* and *AI Guard*.
-2. `GET /api/health` returns `{ ok: true, model: "gemini-3.5-flash-lite" }`.
-3. `POST /api/analyze` rejects under-length messages and unsupported image MIME types (`400`).
-4. `POST /api/analyze` flags UPI QR/PIN scams as `CRITICAL_SCAM` (`riskScore >= 65`) and serves cached repeat scans.
-5. `POST /api/analyze` blocks embedded prompt-injection bypass attempts (`promptInjectionBlocked: true`).
-6. `POST /api/analyze` generates Hindi (`हिन्दी`) safe replies and classifies genuine prepaid courier alerts as `LOOKS_SAFE`.
+### What Our Test Suites Verify
+- **`tests/unit.test.ts` (6 tests):** Deterministic scam/safe classification, defanged spoofed domain extraction (`sbi-kyc-update[.]top`), prompt-injection override floor (`>= 85`), Hindi localization parity, family alert formatting, PNG/JPEG/WebP binary magic-byte checks, prototype pollution blocking, deterministic sliding-window rate limits, FIFO cache eviction, and mocked Gemini payload sanitization.
+- **`tests/api-smoke.test.mjs` (8 subtests):** Production SSR landmarks & CSP headers, `/robots.txt` + `/sitemap.xml`, `/api/health`, `400` malformed JSON/MIME/spoofed image/prototype key rejection, `413` oversized payload rejection, `429` rate limit + `Retry-After` / `X-RateLimit-*` headers, TTL cache hits (`latencyMs: 12`), prompt-injection defense, and Hindi classification.
+- **`tests/e2e.spec.ts` (6 Playwright + Axe tests):** Desktop (`1440x900`) & Mobile (`390x844`) zero-overflow rendering with zero `@axe-core/playwright` WCAG 2.2 AA violations, scenario switching + recent-scan restore, Hindi toggle, keyboard `Escape` + focus restoration across dialogs, `Test AI Override`, and inline form validation + `Clear` action.
 
 ---
 

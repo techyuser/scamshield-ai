@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { AlertOctagon, AlertTriangle, ShieldCheck, ShieldPlus } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import { AnalyzeResult } from "@/types/scamshield";
+import type { AnalyzeResult } from "@/types/scamshield";
 
 interface VerdictBannerProps {
   result: AnalyzeResult;

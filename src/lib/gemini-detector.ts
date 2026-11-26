@@ -1,19 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
-import { AnalyzeRequest, AnalyzeResult } from "@/types/scamshield";
+import type { AnalyzeRequest, AnalyzeResult } from "@/types/scamshield";
+import { getServerGeminiKey, sanitizeGeminiApiKey } from "./env";
 import { runGeminiAnalysis } from "./gemini-core";
 
-function resolveServerClient(overrideKey?: string | null): GoogleGenAI | null {
-  const rawKey = overrideKey?.trim() || process.env.GEMINI_API_KEY?.trim();
-  if (!rawKey) return null;
-  return new GoogleGenAI({ apiKey: rawKey });
-}
+export { hasServerGeminiKey } from "./env";
 
-export function hasServerGeminiKey(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY?.trim());
+function resolveServerClient(overrideKey?: string | null): GoogleGenAI | null {
+  const key = sanitizeGeminiApiKey(overrideKey) || getServerGeminiKey();
+  if (!key) return null;
+  return new GoogleGenAI({ apiKey: key });
 }
 
 /**
- * Server-side Gemini scam detector using GEMINI_API_KEY or optional request override.
+ * Server-side Gemini scam detector using validated GEMINI_API_KEY or optional request override.
  */
 export async function analyzeMessageWithGemini(
   req: AnalyzeRequest,

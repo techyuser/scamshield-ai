@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { Ban, Check, Copy, Download, Share2, ShieldCheck } from "lucide-react";
-import { AnalyzeResult } from "@/types/scamshield";
+import type { AnalyzeResult } from "@/types/scamshield";
 
 interface ActionPlanPanelProps {
   result: AnalyzeResult;
@@ -32,7 +32,7 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
         </h3>
         <ul className="space-y-2.5">
           {result.doNotDo.map((item, idx) => (
-            <li key={idx} className="text-xs text-zinc-200 flex items-start gap-2.5 leading-relaxed">
+            <li key={`donot-${idx}-${item.slice(0, 24)}`} className="text-xs text-zinc-200 flex items-start gap-2.5 leading-relaxed">
               <span
                 className="w-4 h-4 rounded-full bg-rose-500/15 text-rose-300 border border-rose-400/25 flex items-center justify-center text-[10px] shrink-0 mt-0.5"
                 aria-hidden="true"
@@ -51,7 +51,7 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
         </h3>
         <ul className="space-y-2.5">
           {result.safeNextSteps.map((item, idx) => (
-            <li key={idx} className="text-xs text-zinc-200 flex items-start gap-2.5 leading-relaxed">
+            <li key={`step-${idx}-${item.slice(0, 24)}`} className="text-xs text-zinc-200 flex items-start gap-2.5 leading-relaxed">
               <span
                 className="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/25 flex items-center justify-center text-[10px] shrink-0 mt-0.5"
                 aria-hidden="true"
@@ -72,7 +72,7 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
               type="button"
               onClick={onCopyReply}
               className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs text-zinc-200"
-              aria-label="Copy safe reply message"
+              aria-label="Copy Reply — safe message template"
             >
               {copiedReply ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
@@ -85,7 +85,7 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
               type="button"
               onClick={onCopyFamilyAlert}
               className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs text-zinc-200"
-              aria-label="Copy WhatsApp family warning alert"
+              aria-label="Family Alert — copy WhatsApp scam warning"
             >
               {copiedAlert ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
@@ -98,7 +98,7 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
               type="button"
               onClick={onDownloadReport}
               className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs text-zinc-200"
-              aria-label="Download JSON diagnostic report"
+              aria-label="Report — download JSON diagnostic report"
             >
               <Download className="w-3.5 h-3.5 text-cyan-300" aria-hidden="true" />
               Report

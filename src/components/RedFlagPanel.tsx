@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { EvidenceSpotlight } from "@/components/EvidenceSpotlight";
-import { AnalyzeResult } from "@/types/scamshield";
+import type { AnalyzeResult } from "@/types/scamshield";
 
 interface RedFlagPanelProps {
   message: string;

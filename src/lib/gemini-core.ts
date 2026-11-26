@@ -1,9 +1,29 @@
-import { GoogleGenAI } from "@google/genai";
-import { AnalyzeRequest, AnalyzeResult, ReplyLanguage } from "@/types/scamshield";
+import type { GoogleGenAI } from "@google/genai";
+import type {
+  AnalyzeRequest,
+  AnalyzeResult,
+  PipelineStepTrace,
+  RedFlagItem,
+  ReplyLanguage,
+  ScamVerdict,
+  TacticScores,
+} from "@/types/scamshield";
+import { GEMINI_MODEL_ID, GEMINI_TIMEOUT_MS, RISK_THRESHOLDS, VALID_VERDICTS } from "./constants";
 import { analyzeMessageDeterministic } from "./heuristic-detector";
 
-export const GEMINI_MODEL_ID = "gemini-3.5-flash-lite";
-const GEMINI_TIMEOUT_MS = 8500;
+export { GEMINI_MODEL_ID };
+
+/** Minimal structural interface required from the Google GenAI client for easy unit testing. */
+export interface GeminiClientLike {
+  models: {
+    generateContent: (
+      params: Parameters<GoogleGenAI["models"]["generateContent"]>[0]
+    ) => Promise<{ text?: string }>;
+  };
+}
+
+const VALID_SEVERITIES = new Set<RedFlagItem["severity"]>(["HIGH", "MEDIUM", "LOW"]);
+const VALID_TRACE_STATUSES = new Set<PipelineStepTrace["status"]>(["ALERT", "WARN", "CLEAR"]);
 
 function extractJsonBlock(raw: string): string {
   const trimmed = raw.trim();
@@ -26,12 +46,173 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+function clampScore(value: unknown, fallbackScore: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallbackScore;
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+function sanitizeTacticScores(raw: unknown, fallback: TacticScores): TacticScores {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return fallback;
+  const obj = raw as Record<string, unknown>;
+  return {
+    urgencyPressure: clampScore(obj.urgencyPressure, fallback.urgencyPressure),
+    financialTrap: clampScore(obj.financialTrap, fallback.financialTrap),
+    impersonationRisk: clampScore(obj.impersonationRisk, fallback.impersonationRisk),
+    linkDeception: clampScore(obj.linkDeception, fallback.linkDeception),
+  };
+}
+
+function sanitizeRedFlags(raw: unknown, fallback: RedFlagItem[]): RedFlagItem[] {
+  if (!Array.isArray(raw)) return fallback;
+
+  const validated: RedFlagItem[] = [];
+  for (let i = 0; i < raw.length && validated.length < 8; i++) {
+    const item = raw[i];
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const obj = item as Record<string, unknown>;
+    const tactic = typeof obj.tactic === "string" ? obj.tactic.trim().slice(0, 80) : "";
+    const explanation =
+      typeof obj.explanation === "string" ? obj.explanation.trim().slice(0, 260) : "";
+    const matchedSnippet =
+      typeof obj.matchedSnippet === "string" ? obj.matchedSnippet.trim().slice(0, 120) : "";
+    const severity =
+      typeof obj.severity === "string" && VALID_SEVERITIES.has(obj.severity as RedFlagItem["severity"])
+        ? (obj.severity as RedFlagItem["severity"])
+        : "MEDIUM";
+
+    if (tactic && explanation) {
+      validated.push({
+        id:
+          typeof obj.id === "string" && obj.id.trim()
+            ? obj.id.trim().slice(0, 40)
+            : `ai-rf-${i + 1}`,
+        tactic,
+        severity,
+        matchedSnippet: matchedSnippet || tactic,
+        explanation,
+      });
+    }
+  }
+
+  return validated.length > 0 ? validated : fallback;
+}
+
+function sanitizePipelineTrace(
+  raw: unknown,
+  fallback: PipelineStepTrace[]
+): PipelineStepTrace[] {
+  if (!Array.isArray(raw) || raw.length < 2) return fallback;
+  const validated: PipelineStepTrace[] = [];
+
+  for (const item of raw.slice(0, 3)) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const obj = item as Record<string, unknown>;
+    const stage = typeof obj.stage === "string" ? obj.stage.trim().slice(0, 60) : "";
+    const summary = typeof obj.summary === "string" ? obj.summary.trim().slice(0, 180) : "";
+    const status =
+      typeof obj.status === "string" &&
+      VALID_TRACE_STATUSES.has(obj.status as PipelineStepTrace["status"])
+        ? (obj.status as PipelineStepTrace["status"])
+        : "WARN";
+    if (stage && summary) {
+      validated.push({ stage, summary, status });
+    }
+  }
+
+  return validated.length >= 2 ? validated : fallback;
+}
+
+function sanitizeStringList(raw: unknown, fallback: string[], maxItems = 4): string[] {
+  if (!Array.isArray(raw)) return fallback;
+  const cleaned = raw
+    .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+    .map((entry) => entry.trim().slice(0, 240))
+    .slice(0, maxItems);
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+/**
+ * Validates untrusted Gemini JSON payloads against strict AnalyzeResult invariants
+ * while preserving deterministic prompt-injection overrides and fallback guarantees.
+ */
+export function sanitizeGeminiPayload(
+  raw: unknown,
+  fallback: AnalyzeResult,
+  startedAt = Date.now()
+): AnalyzeResult {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const parsed = raw as Record<string, unknown>;
+  const rawVerdict = parsed.verdict;
+  if (
+    typeof rawVerdict !== "string" ||
+    !VALID_VERDICTS.has(rawVerdict as ScamVerdict) ||
+    typeof parsed.riskScore !== "number" ||
+    !Number.isFinite(parsed.riskScore) ||
+    typeof parsed.plainEnglishSummary !== "string" ||
+    parsed.plainEnglishSummary.trim().length === 0
+  ) {
+    return fallback;
+  }
+
+  const geminiFlags = sanitizeRedFlags(parsed.redFlags, fallback.redFlags);
+  const injectionFlag = fallback.redFlags.find((f) => f.id === "rf-prompt-injection");
+  const mergedFlags =
+    injectionFlag && !geminiFlags.some((f) => f.id === "rf-prompt-injection")
+      ? [injectionFlag, ...geminiFlags]
+      : geminiFlags;
+
+  const promptInjectionBlocked = Boolean(
+    parsed.promptInjectionBlocked || fallback.promptInjectionBlocked
+  );
+
+  const clampedScore = clampScore(parsed.riskScore, fallback.riskScore);
+  const riskScore = promptInjectionBlocked
+    ? Math.max(RISK_THRESHOLDS.PROMPT_INJECTION_FLOOR, clampedScore)
+    : clampedScore;
+
+  const verdict: ScamVerdict = promptInjectionBlocked
+    ? "CRITICAL_SCAM"
+    : (rawVerdict as ScamVerdict);
+
+  return {
+    engine: GEMINI_MODEL_ID,
+    latencyMs: Math.max(1, Date.now() - startedAt),
+    language: fallback.language,
+    promptInjectionBlocked,
+    verdict,
+    riskScore,
+    scamCategory:
+      typeof parsed.scamCategory === "string" && parsed.scamCategory.trim()
+        ? parsed.scamCategory.trim().slice(0, 80)
+        : fallback.scamCategory,
+    headline:
+      typeof parsed.headline === "string" && parsed.headline.trim()
+        ? parsed.headline.trim().slice(0, 140)
+        : fallback.headline,
+    plainEnglishSummary: parsed.plainEnglishSummary.trim().slice(0, 400),
+    tacticScores: sanitizeTacticScores(parsed.tacticScores, fallback.tacticScores),
+    redFlags: mergedFlags,
+    indicators: fallback.indicators,
+    highlightedTerms: fallback.highlightedTerms,
+    pipelineTrace: sanitizePipelineTrace(parsed.pipelineTrace, fallback.pipelineTrace),
+    doNotDo: sanitizeStringList(parsed.doNotDo, fallback.doNotDo),
+    safeNextSteps: sanitizeStringList(parsed.safeNextSteps, fallback.safeNextSteps),
+    safeReplyDraft:
+      typeof parsed.safeReplyDraft === "string" && parsed.safeReplyDraft.trim()
+        ? parsed.safeReplyDraft.trim().slice(0, 350)
+        : fallback.safeReplyDraft,
+  };
+}
+
 /**
  * Shared Gemini analysis runner safe for both server routes and static browser deployments.
  * Enforces an 8.5s timeout, prompt-injection quarantine, and deterministic safety floor.
  */
 export async function runGeminiAnalysis(
-  client: GoogleGenAI | null,
+  client: GeminiClientLike | null,
   req: AnalyzeRequest,
   startedAt = Date.now()
 ): Promise<AnalyzeResult> {
@@ -102,49 +283,9 @@ Return ONLY valid JSON matching this schema:
 
     const text = response.text;
     if (!text) return fallback;
-    const parsed = JSON.parse(extractJsonBlock(text)) as Partial<AnalyzeResult>;
 
-    if (!parsed.verdict || typeof parsed.riskScore !== "number" || !parsed.plainEnglishSummary) {
-      return fallback;
-    }
-
-    const geminiFlags = Array.isArray(parsed.redFlags) ? parsed.redFlags : fallback.redFlags;
-    const injectionFlag = fallback.redFlags.find((f) => f.id === "rf-prompt-injection");
-    const mergedFlags =
-      injectionFlag && !geminiFlags.some((f) => f.id === "rf-prompt-injection")
-        ? [injectionFlag, ...geminiFlags]
-        : geminiFlags;
-
-    return {
-      engine: GEMINI_MODEL_ID,
-      latencyMs: Date.now() - startedAt,
-      language,
-      promptInjectionBlocked: Boolean(
-        parsed.promptInjectionBlocked || fallback.promptInjectionBlocked
-      ),
-      verdict: fallback.promptInjectionBlocked ? "CRITICAL_SCAM" : parsed.verdict,
-      riskScore: fallback.promptInjectionBlocked
-        ? Math.max(85, Math.min(100, Math.round(parsed.riskScore)))
-        : Math.min(100, Math.max(0, Math.round(parsed.riskScore))),
-      scamCategory: parsed.scamCategory || fallback.scamCategory,
-      headline: parsed.headline || fallback.headline,
-      plainEnglishSummary: parsed.plainEnglishSummary,
-      tacticScores: parsed.tacticScores || fallback.tacticScores,
-      redFlags: mergedFlags,
-      indicators: fallback.indicators,
-      highlightedTerms: fallback.highlightedTerms,
-      pipelineTrace:
-        Array.isArray(parsed.pipelineTrace) && parsed.pipelineTrace.length >= 2
-          ? parsed.pipelineTrace.slice(0, 3)
-          : fallback.pipelineTrace,
-      doNotDo:
-        Array.isArray(parsed.doNotDo) && parsed.doNotDo.length ? parsed.doNotDo : fallback.doNotDo,
-      safeNextSteps:
-        Array.isArray(parsed.safeNextSteps) && parsed.safeNextSteps.length
-          ? parsed.safeNextSteps
-          : fallback.safeNextSteps,
-      safeReplyDraft: parsed.safeReplyDraft || fallback.safeReplyDraft,
-    };
+    const parsedJson = JSON.parse(extractJsonBlock(text)) as unknown;
+    return sanitizeGeminiPayload(parsedJson, fallback, startedAt);
   } catch {
     return fallback;
   }

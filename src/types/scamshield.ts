@@ -1,6 +1,7 @@
 export type MessageChannel = "whatsapp" | "sms" | "email" | "job_offer" | "upi";
 export type ScamVerdict = "CRITICAL_SCAM" | "SUSPICIOUS" | "LOOKS_SAFE";
 export type ReplyLanguage = "en" | "hi";
+export type AnalysisEngine = "gemini-3.5-flash-lite" | "deterministic-fallback";
 
 export interface AnalyzeRequest {
   message: string;
@@ -27,13 +28,21 @@ export interface PipelineStepTrace {
 
 export interface ExtractedIndicators {
   urls: string[];
+  domains: string[];
   moneyMentions: string[];
   phoneNumbers: string[];
   urgencyPhrases: string[];
 }
 
+export interface TacticScores {
+  urgencyPressure: number;
+  financialTrap: number;
+  impersonationRisk: number;
+  linkDeception: number;
+}
+
 export interface AnalyzeResult {
-  engine: "gemini-3.5-flash-lite" | "deterministic-fallback";
+  engine: AnalysisEngine;
   latencyMs: number;
   language: ReplyLanguage;
   promptInjectionBlocked: boolean;
@@ -42,12 +51,7 @@ export interface AnalyzeResult {
   scamCategory: string;
   headline: string;
   plainEnglishSummary: string;
-  tacticScores: {
-    urgencyPressure: number;
-    financialTrap: number;
-    impersonationRisk: number;
-    linkDeception: number;
-  };
+  tacticScores: TacticScores;
   redFlags: RedFlagItem[];
   indicators: ExtractedIndicators;
   highlightedTerms: string[];

@@ -8,6 +8,7 @@
 /*.zip
 /.tmp-api-export-backup/
 /playwright-report/
+/coverage/
 /test-results/
 .DS_Store
 *.pem

@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { ActionPlanPanel } from "@/components/ActionPlanPanel";
 import { ApiKeyModal } from "@/components/ApiKeyModal";
-import { CommandPalette, PaletteAction } from "@/components/CommandPalette";
+import { CommandPalette } from "@/components/CommandPalette";
+import type { PaletteAction } from "@/components/CommandPalette";
 import { HeaderNav } from "@/components/HeaderNav";
 import { MessageComposer } from "@/components/MessageComposer";
 import { PromptArchitectureModal } from "@/components/PromptArchitectureModal";
@@ -12,6 +13,7 @@ import { RecentScansBar } from "@/components/RecentScansBar";
 import { RedFlagPanel } from "@/components/RedFlagPanel";
 import { VerdictBanner } from "@/components/VerdictBanner";
 import { useScamScanner } from "@/hooks/useScamScanner";
+import { formatFamilyWarningAlert } from "@/lib/localized-guidance";
 import { DEMO_CASES } from "@/lib/scenarios";
 
 /**
@@ -25,9 +27,22 @@ export default function ScamShieldHome() {
   const [copiedAlert, setCopiedAlert] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const replyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const alertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const showToast = useCallback((msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2600);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
+      if (alertTimerRef.current) clearTimeout(alertTimerRef.current);
+    };
   }, []);
 
   const scanner = useScamScanner(showToast);
@@ -43,24 +58,41 @@ export default function ScamShieldHome() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const copyTextSafely = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+        showToast("Clipboard unavailable — please select and copy the text manually.");
+        return false;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        showToast("Clipboard permission denied — please copy the text manually.");
+        return false;
+      }
+    },
+    [showToast]
+  );
+
   const handleCopyReply = useCallback(async () => {
-    await navigator.clipboard.writeText(scanner.result.safeReplyDraft);
+    const ok = await copyTextSafely(scanner.result.safeReplyDraft);
+    if (!ok) return;
     setCopiedReply(true);
     showToast("Safe reply copied!");
-    setTimeout(() => setCopiedReply(false), 1600);
-  }, [scanner.result.safeReplyDraft, showToast]);
+    if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
+    replyTimerRef.current = setTimeout(() => setCopiedReply(false), 1600);
+  }, [copyTextSafely, scanner.result.safeReplyDraft, showToast]);
 
   const handleCopyFamilyAlert = useCallback(async () => {
-    const r = scanner.result;
-    const formatted =
-      r.language === "hi"
-        ? `⚠️ *ScamShield AI चेतावनी (${r.riskScore}/100 जोखिम)*\n${r.headline}\n\n${r.plainEnglishSummary}\n\n• ${r.doNotDo[0] || ""}\n• साइबर अपराध रिपोर्ट करें: cybercrime.gov.in या 1930`
-        : `⚠️ *ScamShield AI Alert (${r.riskScore}/100 Risk)*\n${r.headline}\n\n${r.plainEnglishSummary}\n\n• ${r.doNotDo[0] || ""}\n• Report fraud in India: cybercrime.gov.in or call 1930`;
-    await navigator.clipboard.writeText(formatted);
+    const formatted = formatFamilyWarningAlert(scanner.result);
+    const ok = await copyTextSafely(formatted);
+    if (!ok) return;
     setCopiedAlert(true);
     showToast("Family WhatsApp alert copied!");
-    setTimeout(() => setCopiedAlert(false), 1600);
-  }, [scanner.result, showToast]);
+    if (alertTimerRef.current) clearTimeout(alertTimerRef.current);
+    alertTimerRef.current = setTimeout(() => setCopiedAlert(false), 1600);
+  }, [copyTextSafely, scanner.result, showToast]);
 
   const handleDownloadReport = useCallback(() => {
     const blob = new Blob([JSON.stringify(scanner.result, null, 2)], { type: "application/json" });
@@ -99,7 +131,8 @@ export default function ScamShieldHome() {
       {
         id: "toggle-lang",
         group: "Language",
-        label: scanner.language === "en" ? "Switch Output to Hindi (हिन्दी)" : "Switch Output to English",
+        label:
+          scanner.language === "en" ? "Switch Output to Hindi (हिन्दी)" : "Switch Output to English",
         hint: "EN / HI",
         run: () => scanner.toggleLanguage(scanner.language === "en" ? "hi" : "en"),
       },
@@ -196,6 +229,7 @@ export default function ScamShieldHome() {
           language={scanner.language}
           imagePreview={scanner.imagePreview}
           indicators={scanner.result.indicators}
+          validationError={scanner.validationError}
           isScanning={scanner.isScanning}
           onChannelChange={scanner.setChannel}
           onSenderChange={scanner.setSenderInfo}
@@ -207,6 +241,7 @@ export default function ScamShieldHome() {
           onImageChange={scanner.setImagePreview}
           onScan={() => void scanner.runScan()}
           onTestInjection={scanner.loadInjectionTest}
+          onClear={scanner.clearScanner}
           onToast={showToast}
         />
 

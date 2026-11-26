@@ -100,6 +100,31 @@ test("ScamShield AI security, SEO, and API verification suite", async (t) => {
       }),
     });
     assert.equal(badB64.status, 400);
+
+    const spoofedImg = await fetch(`${BASE_URL}/api/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Check attachment",
+        imageBase64: Buffer.from("plain-text-not-png").toString("base64"),
+        imageMimeType: "image/png",
+      }),
+    });
+    assert.equal(spoofedImg.status, 400);
+
+    const protoPollute = await fetch(`${BASE_URL}/api/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: '{"message":"Check suspicious message","constructor":{}}',
+    });
+    assert.equal(protoPollute.status, 400);
+
+    const oversized = await fetch(`${BASE_URL}/api/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "x".repeat(4_800_000) }),
+    });
+    assert.equal(oversized.status, 413);
   });
 
   await t.test("POST /api/analyze flags UPI QR PIN scam & hits TTL cache", async () => {
@@ -166,5 +191,34 @@ test("ScamShield AI security, SEO, and API verification suite", async (t) => {
     assert.equal(data.verdict, "LOOKS_SAFE");
     assert.equal(data.language, "hi");
     assert.match(data.safeReplyDraft, /[\u0900-\u097F]/);
+  });
+
+  await t.test("POST /api/analyze enforces per-IP rate limits with standard headers", async () => {
+    const testIp = "198.51.100.88";
+    let lastStatus = 200;
+    let retryAfter = null;
+    let rateLimitHeader = null;
+
+    for (let i = 0; i < 42; i += 1) {
+      const res = await fetch(`${BASE_URL}/api/analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": testIp,
+        },
+        body: JSON.stringify({
+          channel: "sms",
+          message: `Unique rate limit probe message #${i} from verification suite`,
+        }),
+      });
+      lastStatus = res.status;
+      rateLimitHeader = res.headers.get("x-ratelimit-limit");
+      retryAfter = res.headers.get("retry-after");
+      if (lastStatus === 429) break;
+    }
+
+    assert.equal(rateLimitHeader, "40");
+    assert.equal(lastStatus, 429);
+    assert.ok(retryAfter && Number(retryAfter) >= 1);
   });
 });

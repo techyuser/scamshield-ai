@@ -2,16 +2,24 @@
 
 import { useRef } from "react";
 import {
+  AlertCircle,
   ImagePlus,
   Languages,
   Link2,
   MessageSquareWarning,
+  RotateCcw,
   SearchCheck,
   ShieldPlus,
   X,
 } from "lucide-react";
-import { ImageAttachment } from "@/hooks/useScamScanner";
-import { ExtractedIndicators, MessageChannel, ReplyLanguage } from "@/types/scamshield";
+import type { ImageAttachment } from "@/hooks/useScamScanner";
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  MAX_IMAGE_FILE_BYTES,
+  MAX_MESSAGE_LENGTH,
+  MAX_SENDER_LENGTH,
+} from "@/lib/constants";
+import type { ExtractedIndicators, MessageChannel, ReplyLanguage } from "@/types/scamshield";
 
 const CHANNEL_OPTIONS: { id: MessageChannel; label: string }[] = [
   { id: "whatsapp", label: "WhatsApp" },
@@ -28,6 +36,7 @@ interface MessageComposerProps {
   language: ReplyLanguage;
   imagePreview: ImageAttachment | null;
   indicators: ExtractedIndicators;
+  validationError: string | null;
   isScanning: boolean;
   onChannelChange: (channel: MessageChannel) => void;
   onSenderChange: (sender: string) => void;
@@ -36,11 +45,12 @@ interface MessageComposerProps {
   onImageChange: (img: ImageAttachment | null) => void;
   onScan: () => void;
   onTestInjection: () => void;
+  onClear: () => void;
   onToast: (msg: string) => void;
 }
 
 /**
- * Frosted glass message & screenshot composer with pill channel selectors and PromptWars override tester.
+ * Frosted glass message & screenshot composer with pill channel selectors, validation cues, and PromptWars override tester.
  */
 export function MessageComposer({
   channel,
@@ -49,6 +59,7 @@ export function MessageComposer({
   language,
   imagePreview,
   indicators,
+  validationError,
   isScanning,
   onChannelChange,
   onSenderChange,
@@ -57,22 +68,29 @@ export function MessageComposer({
   onImageChange,
   onScan,
   onTestInjection,
+  onClear,
   onToast,
 }: MessageComposerProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+
+    if (!(ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(file.type)) {
       onToast("Please upload a PNG, JPEG, or WebP screenshot.");
       return;
     }
-    if (file.size > 3 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_FILE_BYTES) {
       onToast("Screenshot must be under 3 MB.");
       return;
     }
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      onToast("Could not read screenshot file.");
+    };
     reader.onload = () => {
       const dataUrl = typeof reader.result === "string" ? reader.result : "";
       const base64 = dataUrl.split(",")[1] || "";
@@ -81,6 +99,8 @@ export function MessageComposer({
     };
     reader.readAsDataURL(file);
   };
+
+  const canClear = Boolean(message || senderInfo || imagePreview);
 
   return (
     <section className="vibe-card p-5 lg:p-6 space-y-4" aria-label="Message scanner input">
@@ -123,22 +143,66 @@ export function MessageComposer({
         </div>
       </div>
 
-      <input
-        aria-label="Sender name or phone number"
-        value={senderInfo}
-        onChange={(e) => onSenderChange(e.target.value)}
-        placeholder="Optional sender (e.g. +44 7418..., AD-SBIALR, Unknown HR)"
-        className="w-full rounded-full bg-white/[0.03] border border-white/[0.08] px-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-violet-400/60"
-      />
+      <div>
+        <label htmlFor="scanner-sender-input" className="sr-only">
+          Sender name or phone number
+        </label>
+        <input
+          id="scanner-sender-input"
+          aria-label="Sender name or phone number"
+          maxLength={MAX_SENDER_LENGTH}
+          value={senderInfo}
+          onChange={(e) => onSenderChange(e.target.value)}
+          placeholder="Optional sender (e.g. +44 7418..., AD-SBIALR, Unknown HR)"
+          className="w-full rounded-full bg-white/[0.03] border border-white/[0.08] px-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-violet-400/60"
+        />
+      </div>
 
-      <textarea
-        aria-label="Suspicious message text"
-        value={message}
-        onChange={(e) => onMessageChange(e.target.value)}
-        rows={3}
-        placeholder="Paste any suspicious WhatsApp message, SMS, UPI QR request, or job offer here..."
-        className="w-full rounded-2xl bg-white/[0.03] border border-white/[0.08] p-4 text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-violet-400/60"
-      />
+      <div className="space-y-1.5">
+        <label htmlFor="scanner-message-input" className="sr-only">
+          Suspicious message text
+        </label>
+        <textarea
+          id="scanner-message-input"
+          aria-label="Suspicious message text"
+          aria-invalid={Boolean(validationError)}
+          aria-describedby={
+            validationError
+              ? "scanner-validation-error scanner-character-hint"
+              : "scanner-character-hint"
+          }
+          maxLength={MAX_MESSAGE_LENGTH}
+          value={message}
+          onChange={(e) => onMessageChange(e.target.value)}
+          rows={3}
+          placeholder="Paste any suspicious WhatsApp message, SMS, UPI QR request, or job offer here..."
+          className={`w-full rounded-2xl bg-white/[0.03] border p-4 text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none ${
+            validationError
+              ? "border-rose-400/70 focus:border-rose-400"
+              : "border-white/[0.08] focus:border-violet-400/60"
+          }`}
+        />
+
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+          {validationError ? (
+            <p
+              id="scanner-validation-error"
+              role="alert"
+              className="text-xs text-rose-300 flex items-center gap-1.5"
+            >
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>{validationError}</span>
+            </p>
+          ) : (
+            <span className="text-[11px] text-zinc-400">
+              Supports English, Hindi/Hinglish, and uploaded chat screenshots.
+            </span>
+          )}
+          <span id="scanner-character-hint" className="text-[11px] font-mono text-zinc-400">
+            {message.length}/{MAX_MESSAGE_LENGTH}
+          </span>
+        </div>
+      </div>
 
       {imagePreview && (
         <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] w-fit">
@@ -168,7 +232,7 @@ export function MessageComposer({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept={ALLOWED_IMAGE_MIME_TYPES.join(",")}
             aria-label="Upload scam screenshot"
             className="hidden"
             onChange={handleFileSelect}
@@ -190,6 +254,17 @@ export function MessageComposer({
           >
             <ShieldPlus className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
             Test AI Override
+          </button>
+
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={!canClear}
+            className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-300 disabled:opacity-45"
+            aria-label="Clear message and screenshot"
+          >
+            <RotateCcw className="w-3 h-3 text-zinc-300" aria-hidden="true" />
+            Clear
           </button>
 
           <span className="glass-pill inline-flex items-center gap-1 px-3 py-1">

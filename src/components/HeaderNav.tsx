@@ -59,7 +59,7 @@ export function HeaderNav({
             type="button"
             onClick={onOpenSettings}
             className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium"
-            aria-label="Configure AI engine settings"
+            aria-label={`${engineName}: Configure AI engine settings`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
@@ -89,9 +89,10 @@ export function HeaderNav({
             type="button"
             onClick={onOpenPalette}
             className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-200"
-            aria-label="Open quick command menu"
+            title="Open quick command menu (Cmd+K)"
           >
             <Command className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
+            <span className="sr-only">Open quick command menu </span>
             <span className="hidden sm:inline">Cmd+K</span>
           </button>
         </nav>

@@ -1,4 +1,4 @@
-import {
+import type {
   AnalyzeRequest,
   AnalyzeResult,
   ExtractedIndicators,
@@ -6,18 +6,44 @@ import {
   RedFlagItem,
   ReplyLanguage,
   ScamVerdict,
+  TacticScores,
 } from "@/types/scamshield";
+import { RISK_THRESHOLDS } from "./constants";
 import { buildLocalizedGuidance } from "./localized-guidance";
 import { SCAM_RULES } from "./scam-rules";
 
 const SHORT_OR_UNSAFE_URL_RE = /(bit\.ly|tinyurl|rb\.gy|ngrok|\.xyz|\.top|^http:\/\/)/i;
-const SAFE_CONTROL_RE = /(no payment|prepaid|official.*app|bluedart\.com|amazon\.in|flipkart\.com)/i;
+const SAFE_CONTROL_RE =
+  /(no payment|prepaid|official.*app|bluedart\.com|amazon\.in|flipkart\.com)/i;
+const BRAND_SPOOF_DOMAIN_RE =
+  /(sbi|hdfc|icici|axis|paytm|phonepe|gpay|amazon|flipkart|rbi|npci).*(kyc|verify|update|refund|claim|bonus)/i;
+
+function extractDomain(rawUrl: string): string | null {
+  try {
+    const normalized = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    const host = new URL(normalized).hostname.toLowerCase();
+    return host || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Extracts URLs, currency amounts, phone numbers, and urgency tokens from raw message text.
+ * Extracts defanged URLs, host domains, currency amounts, phone numbers, and urgency tokens.
  */
 export function extractIndicators(message: string): ExtractedIndicators {
-  const urls = message.match(/https?:\/\/[^\s]+|(?:bit\.ly|tinyurl\.com|rb\.gy)\/[^\s]+/gi) || [];
+  const rawUrls = message.match(/https?:\/\/[^\s]+|(?:bit\.ly|tinyurl\.com|rb\.gy)\/[^\s]+/gi) || [];
+  const urls = Array.from(
+    new Set(rawUrls.map((u) => u.replace(/[),.!?;:'"]+$/, "")).filter(Boolean))
+  );
+  const defangedHosts =
+    message.match(/\b[a-z0-9-]+(?:\[\.\]|\.)(?:top|xyz|site|online|click|link|tk)\b/gi) || [];
+  const domains = Array.from(
+    new Set([
+      ...urls.map(extractDomain).filter((d): d is string => Boolean(d)),
+      ...defangedHosts.map((h) => h.replace(/\[\.\]/g, ".").toLowerCase()),
+    ])
+  );
   const moneyMentions = message.match(/(?:₹|rs\.?|inr|\$)\s?[\d,]+/gi) || [];
   const phoneNumbers = message.match(/(?:\+?\d{1,3}[-\s]?)?\b\d{5}[-\s]?\d{5}\b/g) || [];
   const urgencyMatches =
@@ -26,7 +52,8 @@ export function extractIndicators(message: string): ExtractedIndicators {
     ) || [];
 
   return {
-    urls: Array.from(new Set(urls)),
+    urls,
+    domains,
     moneyMentions: Array.from(new Set(moneyMentions)),
     phoneNumbers: Array.from(new Set(phoneNumbers)),
     urgencyPhrases: Array.from(new Set(urgencyMatches)),
@@ -57,11 +84,12 @@ function computeTacticScores(
   indicators: ExtractedIndicators,
   redFlags: RedFlagItem[],
   hasShortOrHttpLink: boolean
-) {
+): TacticScores {
   return {
     urgencyPressure: Math.min(
       98,
-      indicators.urgencyPhrases.length * 28 + (/(blocked|tonight|within \d+)/i.test(lower) ? 38 : 10)
+      indicators.urgencyPhrases.length * 28 +
+        (/(blocked|tonight|within \d+)/i.test(lower) ? 38 : 10)
     ),
     financialTrap: Math.min(
       99,
@@ -70,8 +98,9 @@ function computeTacticScores(
     ),
     impersonationRisk: Math.min(
       96,
-      (/(sbi|hdfc|rbi|amazon|flipkart|police|hr)/i.test(lower) && verdict !== "LOOKS_SAFE" ? 78 : 14) +
-        (senderLower.includes("unknown") ? 14 : 0)
+      (/(sbi|hdfc|rbi|amazon|flipkart|police|hr)/i.test(lower) && verdict !== "LOOKS_SAFE"
+        ? 78
+        : 14) + (senderLower.includes("unknown") ? 14 : 0)
     ),
     linkDeception: hasShortOrHttpLink ? 92 : indicators.urls.length > 0 ? 22 : 8,
   };
@@ -114,7 +143,7 @@ function buildPipelineTrace(
 }
 
 /**
- * Deterministic multi-stage scam detector that guarantees resilient operation offline
+ * Deterministic multi-stage scam detector guaranteeing resilient operation offline
  * or when Gemini quota/API keys are unavailable.
  */
 export function analyzeMessageDeterministic(
@@ -143,16 +172,18 @@ export function analyzeMessageDeterministic(
     }
   }
 
-  const hasShortOrHttpLink = indicators.urls.some((u) => SHORT_OR_UNSAFE_URL_RE.test(u));
+  const hasShortOrHttpLink =
+    indicators.urls.some((u) => SHORT_OR_UNSAFE_URL_RE.test(u) || BRAND_SPOOF_DOMAIN_RE.test(u)) ||
+    indicators.domains.some((d) => SHORT_OR_UNSAFE_URL_RE.test(d) || BRAND_SPOOF_DOMAIN_RE.test(d));
   if (hasShortOrHttpLink) {
     riskPoints += 26;
     redFlags.push({
       id: "rf-bad-link",
       tactic: "Masked / Unsecured Phishing Link",
       severity: "HIGH",
-      matchedSnippet: indicators.urls[0],
+      matchedSnippet: indicators.urls[0] || indicators.domains[0] || "Suspicious link",
       explanation:
-        "Uses a URL shortener or unencrypted http:// link to disguise the real website domain instead of an official bank/brand domain.",
+        "Uses a URL shortener, lookalike slug, or unencrypted http:// link to disguise the real website domain instead of an official bank/brand domain.",
     });
   }
 
@@ -163,7 +194,9 @@ export function analyzeMessageDeterministic(
       tactic: "Unverified Off-Platform Redirect",
       severity: "MEDIUM",
       matchedSnippet:
-        text.match(/(?:telegram\s+@?\w+|@\w+)/i)?.[0] || req.senderInfo || "Unknown foreign sender",
+        text.match(/(?:telegram\s+@?\w+|@\w+)/i)?.[0] ||
+        req.senderInfo ||
+        "Unknown foreign sender",
       explanation:
         "Legitimate HR teams and banks do not conduct official onboarding or payouts through anonymous Telegram handles.",
     });
@@ -185,12 +218,20 @@ export function analyzeMessageDeterministic(
     riskPoints = 6;
   }
 
-  const riskScore = Math.min(99, Math.max(4, riskPoints));
-  const verdict: ScamVerdict =
-    riskScore >= 65 ? "CRITICAL_SCAM" : riskScore >= 32 ? "SUSPICIOUS" : "LOOKS_SAFE";
   const promptInjectionBlocked = redFlags.some((r) => r.id === "rf-prompt-injection");
-  const scamCategory = classifyScamCategory(verdict, redFlags, promptInjectionBlocked);
+  const baseScore = Math.min(RISK_THRESHOLDS.MAX_SCORE, Math.max(RISK_THRESHOLDS.MIN_SCORE, riskPoints));
+  const riskScore = promptInjectionBlocked
+    ? Math.max(RISK_THRESHOLDS.PROMPT_INJECTION_FLOOR, baseScore)
+    : baseScore;
 
+  const verdict: ScamVerdict =
+    riskScore >= RISK_THRESHOLDS.CRITICAL
+      ? "CRITICAL_SCAM"
+      : riskScore >= RISK_THRESHOLDS.SUSPICIOUS
+      ? "SUSPICIOUS"
+      : "LOOKS_SAFE";
+
+  const scamCategory = classifyScamCategory(verdict, redFlags, promptInjectionBlocked);
   const highlightedTerms = Array.from(
     new Set([
       ...indicators.urls,
@@ -204,7 +245,7 @@ export function analyzeMessageDeterministic(
 
   return {
     engine: "deterministic-fallback",
-    latencyMs: Math.max(120, Date.now() - startedAt + 150),
+    latencyMs: Math.max(1, Date.now() - startedAt),
     language,
     promptInjectionBlocked,
     verdict,
