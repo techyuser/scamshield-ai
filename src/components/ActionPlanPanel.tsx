@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Ban, Check, Copy, Download, Share2, ShieldCheck } from "lucide-react";
+import { Ban, Check, Copy, Download, ExternalLink, Flag, Share2, ShieldCheck } from "lucide-react";
 import type { AnalyzeResult } from "@/types/scamshield";
 
 interface ActionPlanPanelProps {
@@ -11,6 +11,7 @@ interface ActionPlanPanelProps {
   onCopyReply: () => void;
   onCopyFamilyAlert: () => void;
   onDownloadReport: () => void;
+  onReportCybercrime: () => void;
 }
 
 /**
@@ -23,6 +24,7 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
   onCopyReply,
   onCopyFamilyAlert,
   onDownloadReport,
+  onReportCybercrime,
 }: ActionPlanPanelProps) {
   return (
     <div className="lg:col-span-5 space-y-5">
@@ -109,6 +111,32 @@ export const ActionPlanPanel = memo(function ActionPlanPanel({
           {result.safeReplyDraft}
         </p>
       </div>
+
+      {result.verdict !== "LOOKS_SAFE" && (
+        <div className="vibe-card p-5 lg:p-6 space-y-3 border-rose-400/25">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-rose-200 flex items-center gap-2">
+                <Flag className="w-4 h-4 text-rose-400" aria-hidden="true" />
+                Report to Cybercrime Portal
+              </h3>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Copies a ready-to-paste incident summary &amp; extracted suspect indicators, then
+                opens the official anonymous reporting form.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onReportCybercrime}
+            className="w-full py-2.5 px-4 rounded-full bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-xs font-semibold text-rose-100 inline-flex items-center justify-center gap-2 transition-all"
+          >
+            <Flag className="w-3.5 h-3.5 text-rose-300" aria-hidden="true" />
+            Copy Incident &amp; Report on cybercrime.gov.in
+            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </div>
   );
 });

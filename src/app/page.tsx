@@ -106,6 +106,28 @@ export default function ScamShieldHome() {
     showToast("Downloaded scamshield-report.json");
   }, [scanner.result, showToast]);
 
+  const handleReportCybercrime = useCallback(async () => {
+    const { scamCategory, riskScore, headline, plainEnglishSummary, indicators } = scanner.result;
+    const details = [
+      `ScamShield AI Incident Summary`,
+      `Category: ${scamCategory} (Risk Score: ${riskScore}/100)`,
+      `Headline: ${headline}`,
+      `Summary: ${plainEnglishSummary}`,
+      indicators.urls.length ? `Suspicious URLs: ${indicators.urls.join(", ")}` : null,
+      indicators.domains.length ? `Domains: ${indicators.domains.join(", ")}` : null,
+      indicators.phoneNumbers.length ? `Phone Numbers: ${indicators.phoneNumbers.join(", ")}` : null,
+      indicators.moneyMentions.length ? `Amounts Mentioned: ${indicators.moneyMentions.join(", ")}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const ok = await copyTextSafely(details);
+    if (ok) {
+      showToast("Incident summary copied — paste into cybercrime.gov.in form!");
+    }
+    window.open("https://cybercrime.gov.in/crimereportanonymously", "_blank", "noopener,noreferrer");
+  }, [copyTextSafely, scanner.result, showToast]);
+
   const paletteActions: PaletteAction[] = useMemo(
     () => [
       {
@@ -267,6 +289,7 @@ export default function ScamShieldHome() {
             onCopyReply={() => void handleCopyReply()}
             onCopyFamilyAlert={() => void handleCopyFamilyAlert()}
             onDownloadReport={handleDownloadReport}
+            onReportCybercrime={() => void handleReportCybercrime()}
           />
         </section>
 
