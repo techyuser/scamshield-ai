@@ -29,6 +29,15 @@ export const DEMO_CASES: DemoCase[] = [
       "Bhai I accidentally sent ₹12,500 on GPay instead of ₹1,250 for your laptop! Please scan this QR code and enter your UPI PIN quickly so ₹2,000 advance is credited to your bank account right now.",
   },
   {
+    id: "digital-arrest",
+    label: "Digital Arrest / Police Call",
+    tag: "Extortion Scam",
+    channel: "whatsapp",
+    senderInfo: "+91 98201 44719 (CBI Cyber Cell)",
+    message:
+      "URGENT NOTICE FROM MUMBAI CYBER CELL / CBI: A parcel in your Aadhaar name was seized by Customs with illegal items & money laundering links. You are under Digital Arrest. Join Skype video call right now or arrest warrant will be issued within 2 hours. Transfer ₹45,000 refundable verification deposit to clear your account.",
+  },
+  {
     id: "legit-parcel",
     label: "Genuine Delivery Alert",
     tag: "Safe Control",

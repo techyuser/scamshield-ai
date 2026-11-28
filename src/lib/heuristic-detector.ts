@@ -69,6 +69,9 @@ function classifyScamCategory(
   if (redFlags.some((r) => r.id === "rf-upi-pin" || r.id === "rf-overpay")) {
     return "UPI / Payment Collect Fraud";
   }
+  if (redFlags.some((r) => r.id === "rf-digital-arrest")) {
+    return "Digital Arrest / Fake Police Extortion";
+  }
   if (redFlags.some((r) => r.id === "rf-job-fee")) return "Fake Part-Time Job / Task Scam";
   if (redFlags.some((r) => r.id === "rf-otp-kyc" || r.id === "rf-bad-link")) {
     return "Bank / KYC Phishing Attack";
@@ -98,7 +101,8 @@ function computeTacticScores(
     ),
     impersonationRisk: Math.min(
       96,
-      (/(sbi|hdfc|rbi|amazon|flipkart|police|hr)/i.test(lower) && verdict !== "LOOKS_SAFE"
+      (/(sbi|hdfc|rbi|amazon|flipkart|police|cbi|ncb|cyber cell|customs|hr)/i.test(lower) &&
+      verdict !== "LOOKS_SAFE"
         ? 78
         : 14) + (senderLower.includes("unknown") ? 14 : 0)
     ),

@@ -40,6 +40,19 @@ export const SCAM_RULES: ScamRule[] = [
       "You NEVER need to scan a QR code or enter your UPI PIN to RECEIVE money. Entering your PIN sends money OUT of your bank.",
   },
   {
+    id: "rf-digital-arrest",
+    tactic: "Fake Police / Digital Arrest Extortion",
+    severity: "HIGH",
+    weight: 42,
+    pattern:
+      /(digital arrest|mumbai cyber cell|\bcbi\b|\bncb\b|enforcement directorate|customs parcel|arrest warrant|money laundering|skype.*call)/i,
+    snippetPattern:
+      /.{0,25}(?:digital arrest|cyber cell|cbi|arrest warrant|money laundering|customs).{0,25}/i,
+    fallbackSnippet: "Fake police / digital arrest threat",
+    explanation:
+      "Indian Police, CBI, Customs, or Cyber Cell NEVER conduct 'digital arrests' over video calls or demand security deposits to clear your name.",
+  },
+  {
     id: "rf-job-fee",
     tactic: "Advance-Fee / Task Scam",
     severity: "HIGH",

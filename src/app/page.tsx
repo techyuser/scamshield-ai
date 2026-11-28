@@ -293,7 +293,12 @@ export default function ScamShieldHome() {
           />
         </section>
 
-        <SuspectLookupPanel onToast={showToast} />
+        <SuspectLookupPanel
+          indicators={scanner.result.indicators}
+          senderInfo={scanner.senderInfo}
+          scannedMessage={scanner.message}
+          onToast={showToast}
+        />
 
         <RecentScansBar history={scanner.history} onSelect={scanner.restoreHistoryItem} />
       </main>

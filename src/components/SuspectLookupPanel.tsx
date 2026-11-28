@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AppWindow,
   AtSign,
@@ -14,7 +14,9 @@ import {
   QrCode,
   ShieldCheck,
   Smartphone,
+  Sparkles,
 } from "lucide-react";
+import type { ExtractedIndicators } from "@/types/scamshield";
 
 type SuspectCategoryId =
   | "mobile"
@@ -90,16 +92,84 @@ const SUSPECT_CATEGORIES: SuspectCategory[] = [
 ];
 
 interface SuspectLookupPanelProps {
+  indicators?: ExtractedIndicators;
+  senderInfo?: string;
+  scannedMessage?: string;
   onToast: (msg: string) => void;
+}
+
+interface QuickFillChip {
+  category: SuspectCategoryId;
+  categoryLabel: string;
+  value: string;
 }
 
 /**
  * Dark-themed Official I4C Suspect Lookup panel covering all 7 cybercrime.gov.in categories.
  */
-export function SuspectLookupPanel({ onToast }: SuspectLookupPanelProps) {
+export function SuspectLookupPanel({
+  indicators,
+  senderInfo = "",
+  scannedMessage = "",
+  onToast,
+}: SuspectLookupPanelProps) {
   const [selectedId, setSelectedId] = useState<SuspectCategoryId>("mobile");
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState(false);
+
+  const quickFillChips = useMemo<QuickFillChip[]>(() => {
+    const chips: QuickFillChip[] = [];
+    const seen = new Set<string>();
+    const pushChip = (category: SuspectCategoryId, categoryLabel: string, rawVal: string) => {
+      const value = rawVal.trim();
+      const key = `${category}:${value.toLowerCase()}`;
+      if (!value || seen.has(key)) return;
+      seen.add(key);
+      chips.push({ category, categoryLabel, value });
+    };
+
+    const normalizeMobile = (phone: string) =>
+      phone.replace(/^\+91[\s-]?/, "").replace(/[^\d+]/g, "");
+
+    for (const phone of indicators?.phoneNumbers ?? []) {
+      pushChip("mobile", "Mobile", normalizeMobile(phone));
+    }
+
+    const senderPhoneMatch = senderInfo.match(/(?:\+?\d[\d\s-]{7,15}\d)/);
+    if (senderPhoneMatch) {
+      pushChip("mobile", "Mobile", normalizeMobile(senderPhoneMatch[0]));
+    }
+
+    for (const url of indicators?.urls ?? []) {
+      pushChip("url", "URL", url);
+    }
+    if ((indicators?.urls.length ?? 0) === 0) {
+      for (const domain of indicators?.domains ?? []) {
+        pushChip("url", "URL", domain);
+      }
+    }
+
+    const emailMatches = `${senderInfo} ${scannedMessage}`.match(
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+    );
+    for (const email of emailMatches ?? []) {
+      pushChip("email", "Email", email);
+    }
+
+    const upiMatches = `${senderInfo} ${scannedMessage}`.match(
+      /\b[a-zA-Z0-9._-]{2,}@(?:okaxis|okicici|okhdfcbank|oksbi|ybl|ibl|axl|paytm|upi)\b/gi
+    );
+    for (const upi of upiMatches ?? []) {
+      pushChip("upi", "UPI", upi);
+    }
+
+    const handleMatches = scannedMessage.match(/(?<![a-zA-Z0-9._%+-])@[a-zA-Z0-9_]{3,}/g);
+    for (const handle of handleMatches ?? []) {
+      pushChip("social", "Handle", handle);
+    }
+
+    return chips.slice(0, 6);
+  }, [indicators, senderInfo, scannedMessage]);
 
   const activeCategory =
     SUSPECT_CATEGORIES.find((cat) => cat.id === selectedId) ?? SUSPECT_CATEGORIES[0];
@@ -201,6 +271,30 @@ export function SuspectLookupPanel({ onToast }: SuspectLookupPanelProps) {
       </div>
 
       <form onSubmit={(e) => void handleVerifyOfficial(e)} className="space-y-2.5">
+        {quickFillChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pb-1">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-cyan-200 mr-1">
+              <Sparkles className="w-3 h-3 text-cyan-300" aria-hidden="true" />
+              From active scan:
+            </span>
+            {quickFillChips.map((chip) => (
+              <button
+                key={`${chip.category}-${chip.value}`}
+                type="button"
+                onClick={() => {
+                  setSelectedId(chip.category);
+                  setQuery(chip.value);
+                  onToast(`Loaded ${chip.categoryLabel}: ${chip.value}`);
+                }}
+                className="glass-pill px-2.5 py-1 text-[11px] text-zinc-200 hover:text-white inline-flex items-center gap-1.5"
+              >
+                <span className="text-violet-300 font-semibold">{chip.categoryLabel}:</span>
+                <span className="font-mono truncate max-w-[180px]">{chip.value}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-2">
           <label htmlFor="suspect-identifier-input" className="text-xs font-medium text-zinc-200">
             {activeCategory.inputLabel}

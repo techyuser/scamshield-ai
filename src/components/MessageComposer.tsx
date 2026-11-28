@@ -10,6 +10,7 @@ import {
   RotateCcw,
   SearchCheck,
   ShieldPlus,
+  Sparkles,
   X,
 } from "lucide-react";
 import type { ImageAttachment } from "@/hooks/useScamScanner";
@@ -98,6 +99,36 @@ export function MessageComposer({
       onToast(`Attached ${file.name} — click Scan Message Now.`);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleLoadSampleScreenshot = async () => {
+    try {
+      const response = await fetch("/demos/amazon-otp-scam.png");
+      if (!response.ok) {
+        onToast("Sample screenshot could not be loaded.");
+        return;
+      }
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.onerror = () => onToast("Could not read sample screenshot.");
+      reader.onload = () => {
+        const dataUrl = typeof reader.result === "string" ? reader.result : "";
+        const base64 = dataUrl.split(",")[1] || "";
+        onChannelChange("sms");
+        onSenderChange("Unknown Sender");
+        onMessageChange("");
+        onImageChange({
+          name: "amazon-otp-scam.png",
+          base64,
+          mimeType: "image/png",
+          dataUrl,
+        });
+        onToast("Loaded sample Amazon phishing screenshot — click Scan Message Now!");
+      };
+      reader.readAsDataURL(blob);
+    } catch {
+      onToast("Sample screenshot could not be loaded.");
+    }
   };
 
   const canClear = Boolean(message || senderInfo || imagePreview);
@@ -244,6 +275,15 @@ export function MessageComposer({
           >
             <ImagePlus className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
             Upload Screenshot
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void handleLoadSampleScreenshot()}
+            className="glass-pill inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-cyan-200"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-cyan-300" aria-hidden="true" />
+            Try Sample Screenshot
           </button>
 
           <button
