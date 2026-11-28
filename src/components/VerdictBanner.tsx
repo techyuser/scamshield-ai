@@ -24,6 +24,7 @@ const VERDICT_THEME = {
     glow: "border-rose-400/30 shadow-[0_24px_60px_-20px_rgba(244,63,94,0.3)]",
     pill: "bg-rose-500/20 text-rose-200 border-rose-400/40",
     ring: "border-rose-400/40 bg-rose-500/10",
+    stroke: "#fb7185",
     scoreColor: "text-rose-300",
     label: "CRITICAL SCAM",
     Icon: AlertOctagon,
@@ -32,6 +33,7 @@ const VERDICT_THEME = {
     glow: "border-amber-400/30 shadow-[0_24px_60px_-20px_rgba(245,158,11,0.25)]",
     pill: "bg-amber-500/20 text-amber-200 border-amber-400/40",
     ring: "border-amber-400/40 bg-amber-500/10",
+    stroke: "#fbbf24",
     scoreColor: "text-amber-200",
     label: "SUSPICIOUS",
     Icon: AlertTriangle,
@@ -40,6 +42,7 @@ const VERDICT_THEME = {
     glow: "border-emerald-400/30 shadow-[0_24px_60px_-20px_rgba(16,185,129,0.25)]",
     pill: "bg-emerald-500/20 text-emerald-200 border-emerald-400/40",
     ring: "border-emerald-400/40 bg-emerald-500/10",
+    stroke: "#34d399",
     scoreColor: "text-emerald-300",
     label: "LOOKS SAFE",
     Icon: ShieldCheck,
@@ -165,13 +168,40 @@ export const VerdictBanner = memo(function VerdictBanner({
         </div>
 
         <div
-          className={`rounded-3xl px-6 py-4 text-center shrink-0 min-w-[164px] border backdrop-blur-2xl ${theme.ring}`}
+          className={`rounded-3xl px-5 py-4 text-center shrink-0 min-w-[164px] border flex flex-col items-center ${theme.ring}`}
         >
-          <p className="text-[11px] uppercase tracking-widest text-zinc-300">Risk Score</p>
-          <p className={`text-3xl font-extrabold mt-0.5 ${theme.scoreColor}`}>
-            <AnimatedCounter value={result.riskScore} suffix="/100" />
-          </p>
-          <p className="text-[11px] text-zinc-300 mt-0.5">{result.latencyMs}ms scan</p>
+          <p className="text-[10px] uppercase tracking-widest text-zinc-300 mb-2">Risk Score</p>
+          <div className="relative w-24 h-24 flex items-center justify-center">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true">
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="none"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="8"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="none"
+                stroke={theme.stroke}
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={263.89}
+                strokeDashoffset={263.89 * (1 - Math.max(0, Math.min(100, result.riskScore)) / 100)}
+                className="transition-[stroke-dashoffset] duration-700 ease-out"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <p className={`text-2xl font-extrabold leading-none ${theme.scoreColor}`}>
+                <AnimatedCounter value={result.riskScore} />
+              </p>
+              <span className="text-[10px] text-zinc-400 font-medium mt-0.5">/ 100</span>
+            </div>
+          </div>
+          <p className="text-[11px] text-zinc-300 mt-1.5">{result.latencyMs}ms scan</p>
         </div>
       </div>
 

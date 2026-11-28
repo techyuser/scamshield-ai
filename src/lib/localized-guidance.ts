@@ -11,6 +11,7 @@ export interface LocalizedGuidance {
 const HINDI_CATEGORY_LABELS: Record<string, string> = {
   "Verified Informational Notice": "प्रमाणित सामान्य सूचना",
   "UPI / Payment Collect Fraud": "UPI / भुगतान धोखाधड़ी",
+  "Fake Prize / Lottery Scam": "नकली इनाम / लॉटरी ठगी",
   "Fake Part-Time Job / Task Scam": "फर्जी पार्ट-टाइम नौकरी / टास्क ठगी",
   "Bank / KYC Phishing Attack": "बैंक / KYC फ़िशिंग हमला",
   "Adversarial Filter-Bypass Scam": "AI फ़िल्टर चकमा देने वाली ठगी",

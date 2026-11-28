@@ -33,7 +33,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${jetbrainsMono.variable} dark`}>
+    <html lang="en" className={`${jakarta.variable} ${jetbrainsMono.variable} dark`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var r=document.documentElement;if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()){r.classList.add('capacitor-native');}var raw=localStorage.getItem('scamshield_mobile_settings_v1');if(raw){var s=JSON.parse(raw);var isLight=s.theme==='light'||(s.theme==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches);if(isLight){r.classList.add('theme-light');r.classList.remove('dark');}}}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-[#06070c] text-zinc-100 antialiased selection:bg-violet-500/30">
         <a
           href="#main-content"

@@ -7,6 +7,7 @@ import { analyzeClientFallback } from "@/lib/client-analyzer";
 import { MIN_MESSAGE_LENGTH } from "@/lib/constants";
 import { analyzeMessageDeterministic } from "@/lib/heuristic-detector";
 import { DEMO_CASES } from "@/lib/scenarios";
+import { ScamShieldBridge } from "@/plugins/scamshield-bridge";
 import type {
   AnalyzeResult,
   DemoCase,
@@ -171,8 +172,22 @@ export function useScamScanner(showToast: (msg: string) => void) {
       activeScanAbortRef.current = controller;
 
       setIsScanning(true);
+      let effectiveMsg = targetMsg;
+      if (imagePreview?.base64 && !override) {
+        try {
+          const ocr = await ScamShieldBridge.extractTextFromImage({ base64: imagePreview.base64 });
+          const ocrText = ocr?.text?.trim();
+          if (ocrText && !effectiveMsg.includes(ocrText.slice(0, 24))) {
+            effectiveMsg = effectiveMsg.trim() ? `${effectiveMsg.trim()}\n\n${ocrText}` : ocrText;
+            setMessageState(effectiveMsg);
+          }
+        } catch {
+          // OCR unavailable on web
+        }
+      }
+
       const reqBody = {
-        message: targetMsg,
+        message: effectiveMsg,
         channel: targetChannel,
         senderInfo: targetSender,
         language: targetLang,
@@ -323,6 +338,7 @@ export function useScamScanner(showToast: (msg: string) => void) {
     message,
     setMessage,
     language,
+    setLanguage,
     imagePreview,
     setImagePreview,
     validationError,

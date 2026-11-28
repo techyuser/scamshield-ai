@@ -10,6 +10,7 @@
 /playwright-report/
 /coverage/
 /test-results/
+/.superpowers/
 .DS_Store
 *.pem
 npm-debug.log*

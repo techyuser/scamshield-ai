@@ -2,6 +2,8 @@ import type { MessageChannel, ScamVerdict } from "@/types/scamshield";
 
 export const GEMINI_MODEL_ID = "gemini-3.5-flash-lite" as const;
 export const GEMINI_TIMEOUT_MS = 8500;
+export const ANDROID_BETA_APK_URL =
+  "https://github.com/techyuser/scamshield-ai/releases/download/v0.1.0-dev.1/scamshield-ai-v0.1.0-dev-debug.apk" as const;
 
 export const ALLOWED_CHANNELS: readonly MessageChannel[] = [
   "whatsapp",
@@ -35,7 +37,7 @@ export const MAX_CACHE_ENTRIES = 200;
 
 export const RISK_THRESHOLDS = {
   CRITICAL: 65,
-  SUSPICIOUS: 32,
+  SUSPICIOUS: 26,
   PROMPT_INJECTION_FLOOR: 85,
   MIN_SCORE: 4,
   MAX_SCORE: 99,

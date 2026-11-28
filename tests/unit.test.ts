@@ -79,6 +79,19 @@ test("heuristic detector classifies scam archetypes, defanged domains, and safe 
   assert.equal(imageOnlyResult.verdict, "SUSPICIOUS");
   assert.ok(imageOnlyResult.redFlags.some((f) => f.id === "rf-image-only"));
   assert.equal(imageOnlyResult.indicators.urls.length, 0);
+
+  // Multiline OCR cash-prize + short-link message must be flagged as CRITICAL_SCAM even across line breaks
+  const prizeOcrResult = analyzeMessageDeterministic({
+    channel: "whatsapp",
+    senderInfo: "Screenshot",
+    language: "en",
+    message:
+      "Congratulations you won cash\nprize of Rs. 25000 click this link\nto claim- bit.ly/claim",
+  });
+  assert.equal(prizeOcrResult.verdict, "CRITICAL_SCAM");
+  assert.ok(prizeOcrResult.riskScore >= RISK_THRESHOLDS.CRITICAL);
+  assert.ok(prizeOcrResult.redFlags.some((f) => f.id === "rf-prize-lure"));
+  assert.ok(prizeOcrResult.redFlags.some((f) => f.id === "rf-bad-link"));
 });
 
 test("prompt-injection attempts trigger override guard and enforce safety score floor", () => {

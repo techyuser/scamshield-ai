@@ -54,4 +54,32 @@ class NotificationProcessorTest {
         val result = NotificationProcessor.sanitizeContent(input)
         assertTrue("Normal message should pass through", result == input)
     }
+
+    @Test
+    fun `does not flag casual personal chat messages above 25 percent`() {
+        val processor = NotificationProcessor()
+        val casualMessages = listOf(
+            "Sister: Hey call me urgent when you get free",
+            "Sister: Drop me your location pin on WhatsApp",
+            "Bro: We won the match today! Check https://youtube.com/watch?v=123",
+            "Mom: Did you get your refund for the Amazon order?"
+        )
+        for (msg in casualMessages) {
+            val assessment = processor.assessRisk(msg, "com.whatsapp")
+            assertFalse("Casual chat should not exceed 25%: $msg (score=${assessment.riskScore})", assessment.isScam)
+            assertTrue("Casual chat score should be <= 25: ${assessment.riskScore}", assessment.riskScore <= 25)
+        }
+    }
+
+    @Test
+    fun `flags genuine and multiline prize scam notifications strongly`() {
+        val processor = NotificationProcessor()
+        val scam = "AD-SBIALR: URGENT: Your SBI KYC is expired. Account will be blocked tonight. Update at http://sbi-kyc.top"
+        val assessment = processor.assessRisk(scam, "com.google.android.apps.messaging")
+        assertTrue("Scam should be flagged > 25% (score=${assessment.riskScore})", assessment.isScam && assessment.riskScore > 25)
+
+        val multilinePrize = "Congratulations you won cash\nprize of Rs. 25000 click this link\nto claim- bit.ly/claim"
+        val prizeAssessment = processor.assessRisk(multilinePrize, "com.whatsapp")
+        assertTrue("Multiline prize scam should score >= 65 (score=${prizeAssessment.riskScore})", prizeAssessment.isScam && prizeAssessment.riskScore >= 65)
+    }
 }

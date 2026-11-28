@@ -66,6 +66,9 @@ function classifyScamCategory(
   promptInjectionBlocked: boolean
 ): string {
   if (verdict === "LOOKS_SAFE") return "Verified Informational Notice";
+  if (redFlags.some((r) => r.id === "rf-prize-lure")) {
+    return "Fake Prize / Lottery Scam";
+  }
   if (redFlags.some((r) => r.id === "rf-upi-pin" || r.id === "rf-overpay")) {
     return "UPI / Payment Collect Fraud";
   }

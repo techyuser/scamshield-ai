@@ -93,8 +93,78 @@ class NotificationProcessor {
         return true
     }
 
-    private fun cleanupOldEntries(now: Long) {
+    fun cleanupOldEntries(now: Long) {
         val cutoff = now - DEDUP_WINDOW_MS
         processedHashes.entries.removeIf { it.value < cutoff }
+    }
+
+    data class NotificationAssessment(
+        val riskScore: Int,
+        val category: String,
+        val isScam: Boolean,
+        val matchedTriggers: List<String>
+    )
+
+    fun assessRisk(text: String, packageName: String = ""): NotificationAssessment {
+        val lower = text.lowercase()
+        var score = 8
+        val triggers = mutableListOf<String>()
+
+        if (Regex("\\b(kyc|pan card|aadhaar|account.*(block|suspend|freeze|close)|re-?verify)\\b").containsMatchIn(lower)) {
+            score += 36
+            triggers.add("Bank / KYC Threat")
+        }
+        if (Regex("\\b(share.*otp|tell.*otp|send.*otp|cvv|atm pin|mpin|upi pin|enter.*pin|share.*password|share.*code)\\b").containsMatchIn(lower)) {
+            score += 38
+            triggers.add("Credential / PIN Request")
+        }
+        if (Regex("(your (code|otp) is \\d{4,8}|didn'?t request this|did not request this)").containsMatchIn(lower) &&
+            Regex("(click here|tap here|https?://)").containsMatchIn(lower)
+        ) {
+            score += 56
+            triggers.add("Unsolicited OTP Link Bait")
+        }
+        if (Regex("\\b(scan.*qr|enter.*upi|upi.*pin|collect request|registration fee|processing fee|security deposit|claim.*refund)\\b").containsMatchIn(lower)) {
+            score += 36
+            triggers.add("UPI / Fee Trap")
+        }
+        if (Regex("\\b(lottery|jackpot|lucky draw)\\b|won[\\s\\S]{0,40}?(prize|cash|lottery|crore|lakh|rs|₹)|congratulations[\\s\\S]{0,50}?won|claim[\\s\\S]{0,35}?(prize|reward|bonus|cash)|(?:click|tap)[\\s\\S]{0,35}?link[\\s\\S]{0,35}?claim").containsMatchIn(lower)) {
+            score += 40
+            triggers.add("Lottery / Prize Bait")
+        }
+        if (Regex("\\b(digital arrest|cbi|ncb|enforcement directorate|cyber cell|customs parcel|arrest warrant|money laundering)\\b").containsMatchIn(lower)) {
+            score += 46
+            triggers.add("Digital Arrest / Extortion")
+        }
+        if (Regex("(http://|bit\\.ly|tinyurl|rb\\.gy|ngrok|\\.top\\b|\\.xyz\\b|\\.click\\b|\\.site\\b|\\.online\\b|\\.tk\\b)").containsMatchIn(lower)) {
+            score += 26
+            triggers.add("Suspicious Link")
+        }
+        if (Regex("\\b(urgent|immediately|right now|within \\d+ hours?|expire|tonight|last warning)\\b").containsMatchIn(lower)) {
+            score += 14
+            triggers.add("Urgency Pressure")
+        }
+        if (Regex("(telegram.*@|part[- ]time.*earn|work from home.*earn|earn.*daily|liking youtube|vip.*task)").containsMatchIn(lower)) {
+            score += 36
+            triggers.add("Task / Job Bait")
+        }
+
+        val clamped = score.coerceIn(5, 98)
+        val category = when {
+            triggers.contains("Digital Arrest / Extortion") -> "Digital Arrest / Extortion"
+            triggers.contains("UPI / Fee Trap") -> "UPI / Payment Fraud"
+            triggers.contains("Bank / KYC Threat") -> "Bank / KYC Phishing"
+            triggers.contains("Lottery / Prize Bait") -> "Lottery / Reward Scam"
+            triggers.contains("Task / Job Bait") -> "Fake Job / Task Scam"
+            triggers.isNotEmpty() -> "Suspicious Message"
+            else -> "Verified Notice"
+        }
+
+        return NotificationAssessment(
+            riskScore = clamped,
+            category = category,
+            isScam = clamped > 25,
+            matchedTriggers = triggers
+        )
     }
 }

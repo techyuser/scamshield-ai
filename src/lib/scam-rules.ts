@@ -77,13 +77,39 @@ export const SCAM_RULES: ScamRule[] = [
       "Banks never ask for OTPs over calls/SMS or force PAN KYC updates via random shortened web links.",
   },
   {
+    id: "rf-unsolicited-otp-link",
+    tactic: "Unsolicited OTP & Phishing Link Bait",
+    severity: "HIGH",
+    weight: 62,
+    pattern:
+      /(?:your\s+(?:code|otp)\s+is\s+\d{4,8}|didn'?t\s+request\s+this|did\s+not\s+request\s+this)[\s\S]{0,120}(?:click\s+here|tap\s+here|verify\s+here|https?:\/\/)/i,
+    snippetPattern:
+      /(?:your\s+(?:code|otp)\s+is\s+\d{4,8}|if\s+you\s+didn'?t\s+request\s+this[\s\S]{0,40})/i,
+    fallbackSnippet: "Unsolicited verification code with link",
+    explanation:
+      "Attackers send fake 'Your code is X. If you didn't request this, click here' alerts to lure you into clicking phishing or account-takeover links.",
+  },
+  {
+    id: "rf-prize-lure",
+    tactic: "Fake Cash Prize / Lottery Claim",
+    severity: "HIGH",
+    weight: 40,
+    pattern:
+      /(congratulations[\s\S]{0,50}?(?:won|prize|winner)|won[\s\S]{0,40}?(?:cash|prize|lottery|reward|bonus|rs\.?|₹|\$)|lucky draw|\blottery\b|gift[\s\S]{0,30}?claim|(?:click|tap)[\s\S]{0,35}?(?:this\s+)?link[\s\S]{0,35}?(?:to\s+)?claim)/i,
+    snippetPattern:
+      /.{0,25}(?:congratulations|won[\s\S]{0,20}(?:cash|prize)|lottery|lucky draw|claim)/i,
+    fallbackSnippet: "Fake cash prize / claim link bait",
+    explanation:
+      "Unsolicited 'Congratulations you won a cash prize' messages with claim links are classic phishing traps designed to steal banking credentials or advance fees.",
+  },
+  {
     id: "rf-overpay",
     tactic: "Fake Overpayment / Bait Story",
     severity: "HIGH",
     weight: 26,
-    pattern: /(accidentally sent|wrongly transferred|won.*prize|lottery|gift.*claim)/i,
-    snippetPattern: /.{0,25}(?:accidentally sent|wrongly transferred|won.*prize|lottery).{0,25}/i,
-    fallbackSnippet: "Accidental transfer / prize claim",
+    pattern: /(accidentally sent|wrongly transferred)/i,
+    snippetPattern: /.{0,25}(?:accidentally sent|wrongly transferred).{0,25}/i,
+    fallbackSnippet: "Accidental transfer claim",
     explanation:
       "No real mistake occurred—the screenshot/SMS is fake, and they are trying to rush you into sending your own money back.",
   },
