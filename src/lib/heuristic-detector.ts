@@ -154,7 +154,9 @@ export function analyzeMessageDeterministic(
   req: AnalyzeRequest,
   startedAt = Date.now()
 ): AnalyzeResult {
-  const text = req.message.trim();
+  const rawText = req.message.trim();
+  const hasZeroWidthSmuggling = /[\u200B-\u200D\uFEFF]/.test(rawText);
+  const text = rawText.replace(/[\u200B-\u200D\uFEFF]/g, "");
   const lower = text.toLowerCase();
   const senderLower = (req.senderInfo || "").toLowerCase();
   const language: ReplyLanguage = req.language === "hi" ? "hi" : "en";
@@ -162,6 +164,18 @@ export function analyzeMessageDeterministic(
 
   const redFlags: RedFlagItem[] = [];
   let riskPoints = 8;
+
+  if (hasZeroWidthSmuggling) {
+    riskPoints += 30;
+    redFlags.push({
+      id: "rf-zero-width",
+      tactic: "Invisible Unicode Smuggling",
+      severity: "HIGH",
+      matchedSnippet: "Hidden zero-width characters",
+      explanation:
+        "Contains invisible zero-width characters commonly used to evade keyword filters and trick AI classifiers.",
+    });
+  }
 
   for (const rule of SCAM_RULES) {
     if (rule.pattern.test(lower)) {

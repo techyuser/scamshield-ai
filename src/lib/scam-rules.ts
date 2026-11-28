@@ -21,9 +21,9 @@ export const SCAM_RULES: ScamRule[] = [
     severity: "HIGH",
     weight: 45,
     pattern:
-      /(ignore (all )?previous instructions|mark (this|message) as safe|riskscore\s*[:=]\s*0|system prompt|override (safety|instructions))/i,
+      /(ignore (all )?previous instructions|mark (this|message) as safe|riskscore\s*[:=]\s*0|system prompt|override (safety|instructions)|<\/untrusted_message>|"verdict"\s*:\s*"looks_safe")/i,
     snippetPattern:
-      /.{0,20}(?:ignore (?:all )?previous instructions|mark (?:this|message) as safe|riskscore\s*[:=]\s*0|system prompt|override (?:safety|instructions)).{0,25}/i,
+      /.{0,20}(?:ignore (?:all )?previous instructions|mark (?:this|message) as safe|riskscore\s*[:=]\s*0|system prompt|override (?:safety|instructions)|<\/untrusted_message>|"verdict"\s*:\s*"looks_safe").{0,25}/i,
     fallbackSnippet: "Embedded AI override instruction",
     explanation:
       "The message contains hidden instructions attempting to trick AI scam filters into marking a dangerous message as safe.",

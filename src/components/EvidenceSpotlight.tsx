@@ -1,7 +1,8 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import { Coins, Globe, Highlighter, Link2, Phone } from "lucide-react";
+import { AlertTriangle, Coins, Globe, Highlighter, Link2, Phone, QrCode, ShieldCheck } from "lucide-react";
+import { inspectDomainForensics, parseUpiPaymentUri } from "@/lib/forensics";
 import type { ExtractedIndicators } from "@/types/scamshield";
 
 interface EvidenceSpotlightProps {
@@ -42,7 +43,9 @@ export const EvidenceSpotlight = memo(function EvidenceSpotlight({
       }));
   }, [message, terms]);
 
-  const domains = indicators?.domains ?? [];
+  const domains = useMemo(() => indicators?.domains ?? [], [indicators?.domains]);
+  const domainForensics = useMemo(() => inspectDomainForensics(domains), [domains]);
+  const upiIntent = useMemo(() => parseUpiPaymentUri(message), [message]);
   const hasEntities =
     indicators &&
     (indicators.urls.length > 0 ||
@@ -114,6 +117,70 @@ export const EvidenceSpotlight = memo(function EvidenceSpotlight({
               {num}
             </span>
           ))}
+        </div>
+      )}
+
+      {upiIntent && (
+        <div className="rounded-xl p-3 bg-amber-500/10 border border-amber-400/30 space-y-1.5 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-semibold text-amber-200 flex items-center gap-1.5">
+              <QrCode className="w-3.5 h-3.5 text-amber-300" aria-hidden="true" />
+              UPI Payment X-Ray
+            </span>
+            {upiIntent.amount && (
+              <span className="font-mono font-semibold text-rose-200 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-400/30">
+                Debits ₹{upiIntent.amount}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-200 font-mono">
+            {upiIntent.payeeVpa && <span>VPA: {upiIntent.payeeVpa}</span>}
+            {upiIntent.payeeName && <span>Name: {upiIntent.payeeName}</span>}
+            {upiIntent.note && <span>Note: {upiIntent.note}</span>}
+          </div>
+          {upiIntent.isPullTrap && (
+            <p className="text-[11px] text-amber-100/90">
+              Warning: Approving a UPI link/PIN pulls money OUT of your bank — UPI never requires a PIN or QR scan to receive refunds.
+            </p>
+          )}
+        </div>
+      )}
+
+      {domainForensics.length > 0 && (
+        <div className="rounded-xl p-3 bg-white/[0.025] border border-white/[0.08] space-y-2 text-xs">
+          <p className="font-semibold text-zinc-200 flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-cyan-300" aria-hidden="true" />
+            Domain Forensics X-Ray
+          </p>
+          <div className="space-y-1.5">
+            {domainForensics.map((item) => (
+              <div
+                key={item.domain}
+                className="flex flex-wrap items-center justify-between gap-2 text-[11px] bg-black/25 px-2.5 py-1.5 rounded-lg border border-white/[0.06]"
+              >
+                <div className="flex items-center gap-2">
+                  {item.status === "VERIFIED_OFFICIAL" ? (
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-300 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-300 shrink-0" aria-hidden="true" />
+                  )}
+                  <span className="font-mono text-zinc-100">{item.domain}</span>
+                  <span className="text-zinc-400 hidden sm:inline">— {item.detail}</span>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                    item.status === "VERIFIED_OFFICIAL"
+                      ? "bg-emerald-500/15 text-emerald-200 border-emerald-400/30"
+                      : item.status === "UNVERIFIED"
+                      ? "bg-amber-500/15 text-amber-200 border-amber-400/30"
+                      : "bg-rose-500/15 text-rose-200 border-rose-400/30"
+                  }`}
+                >
+                  {item.badge}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

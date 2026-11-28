@@ -26,7 +26,7 @@ export const DEMO_CASES: DemoCase[] = [
     channel: "upi",
     senderInfo: "OLX Buyer (Rahul)",
     message:
-      "Bhai I accidentally sent ₹12,500 on GPay instead of ₹1,250 for your laptop! Please scan this QR code and enter your UPI PIN quickly so ₹2,000 advance is credited to your bank account right now.",
+      "Bhai I accidentally sent ₹12,500 on GPay instead of ₹1,250 for your laptop! Please approve upi://pay?pa=refunddesk@okaxis&pn=RefundDesk&am=12500&tn=ClaimRefund or scan this QR code and enter your UPI PIN quickly so ₹2,000 advance is credited right now.",
   },
   {
     id: "digital-arrest",

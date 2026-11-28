@@ -24,6 +24,7 @@ export default function ScamShieldHome() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
   const [archModalOpen, setArchModalOpen] = useState(false);
+  const [seniorMode, setSeniorMode] = useState(false);
   const [copiedReply, setCopiedReply] = useState(false);
   const [copiedAlert, setCopiedAlert] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -149,7 +150,7 @@ export default function ScamShieldHome() {
         group: "PromptWars",
         label: "Run AI Override Prompt-Injection Test",
         hint: "Security",
-        run: scanner.loadInjectionTest,
+        run: () => scanner.loadInjectionTest("override"),
       },
       {
         id: "toggle-lang",
@@ -273,12 +274,16 @@ export default function ScamShieldHome() {
           onLanguageToggle={scanner.toggleLanguage}
           onImageChange={scanner.setImagePreview}
           onScan={() => void scanner.runScan()}
-          onTestInjection={scanner.loadInjectionTest}
+          onTestInjection={() => scanner.loadInjectionTest("override")}
           onClear={scanner.clearScanner}
           onToast={showToast}
         />
 
-        <VerdictBanner result={scanner.result} />
+        <VerdictBanner
+          result={scanner.result}
+          seniorMode={seniorMode}
+          onToggleSeniorMode={() => setSeniorMode((prev) => !prev)}
+        />
 
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-5" aria-label="Detailed analysis">
           <RedFlagPanel message={scanner.message} result={scanner.result} />
@@ -322,7 +327,12 @@ export default function ScamShieldHome() {
         />
       )}
 
-      {archModalOpen && <PromptArchitectureModal onClose={() => setArchModalOpen(false)} />}
+      {archModalOpen && (
+        <PromptArchitectureModal
+          onClose={() => setArchModalOpen(false)}
+          onRunAttack={(variant) => scanner.loadInjectionTest(variant)}
+        />
+      )}
 
       {toast && (
         <div
