@@ -1,6 +1,7 @@
 "use client";
 
-import { Command, Cpu, KeyRound, ShieldAlert, ShieldCheck, Volume2, VolumeX } from "lucide-react";
+import { Command, Cpu, Download, KeyRound, ShieldAlert, ShieldCheck, Volume2, VolumeX } from "lucide-react";
+import { ANDROID_BETA_APK_URL } from "@/lib/constants";
 
 interface HeaderNavProps {
   engineName: string;
@@ -65,6 +66,21 @@ export function HeaderNav({
             <Cpu className="w-3.5 h-3.5 text-violet-300" aria-hidden="true" />
             AI Guard
           </button>
+
+          <a
+            href={ANDROID_BETA_APK_URL}
+            download="scamshield-ai-v0.1.0-dev-debug.apk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cyan-200 border-cyan-400/25 hover:border-cyan-400/50 whitespace-nowrap"
+            aria-label="Download Android Beta App APK"
+          >
+            <Download className="w-3.5 h-3.5 text-cyan-300" aria-hidden="true" />
+            <span className="hidden sm:inline">Download App</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/35">
+              Beta
+            </span>
+          </a>
 
           <button
             type="button"

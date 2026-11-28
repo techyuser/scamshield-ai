@@ -15,6 +15,7 @@ import { SuspectLookupPanel } from "@/components/SuspectLookupPanel";
 import { VerdictBanner } from "@/components/VerdictBanner";
 import MobileAppPage from "@/app/mobile/page";
 import { useScamScanner } from "@/hooks/useScamScanner";
+import { ANDROID_BETA_APK_URL } from "@/lib/constants";
 import { formatFamilyWarningAlert } from "@/lib/localized-guidance";
 import { DEMO_CASES } from "@/lib/scenarios";
 
@@ -191,6 +192,13 @@ export default function ScamShieldHome() {
         run: () => void handleCopyReply(),
       },
       {
+        id: "download-beta-apk",
+        group: "Mobile App",
+        label: "Download Android App (Beta APK)",
+        hint: "Beta",
+        run: () => window.open(ANDROID_BETA_APK_URL, "_blank", "noopener,noreferrer"),
+      },
+      {
         id: "api-key",
         group: "Settings",
         label: "Configure Optional Gemini API Key",
@@ -218,7 +226,7 @@ export default function ScamShieldHome() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col desktop-only-shell">
       <HeaderNav
         engineName={engineName}
         liveGeminiReady={liveGeminiReady}
@@ -324,7 +332,17 @@ export default function ScamShieldHome() {
       <footer className="max-w-5xl w-full mx-auto px-4 sm:px-6 pb-8 pt-2 text-center text-xs text-zinc-300">
         ScamShield AI assists consumer fraud awareness. For active financial fraud in India, call{" "}
         <strong className="text-zinc-100">1930</strong> or report at{" "}
-        <strong className="text-zinc-100">cybercrime.gov.in</strong>.
+        <strong className="text-zinc-100">cybercrime.gov.in</strong>.{" "}
+        <span className="text-zinc-500">·</span>{" "}
+        <a
+          href={ANDROID_BETA_APK_URL}
+          download="scamshield-ai-v0.1.0-dev-debug.apk"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2"
+        >
+          Download Android App (Beta APK)
+        </a>
       </footer>
 
       {paletteOpen && (
