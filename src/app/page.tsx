@@ -11,6 +11,7 @@ import { MessageComposer } from "@/components/MessageComposer";
 import { PromptArchitectureModal } from "@/components/PromptArchitectureModal";
 import { RecentScansBar } from "@/components/RecentScansBar";
 import { RedFlagPanel } from "@/components/RedFlagPanel";
+import { SuspectLookupPanel } from "@/components/SuspectLookupPanel";
 import { VerdictBanner } from "@/components/VerdictBanner";
 import { useScamScanner } from "@/hooks/useScamScanner";
 import { formatFamilyWarningAlert } from "@/lib/localized-guidance";
@@ -137,6 +138,13 @@ export default function ScamShieldHome() {
         run: () => scanner.toggleLanguage(scanner.language === "en" ? "hi" : "en"),
       },
       {
+        id: "suspect-lookup",
+        group: "Action",
+        label: "Jump to Official Suspect Identifier Check",
+        hint: "I4C",
+        run: () => document.getElementById("suspect-lookup")?.scrollIntoView({ behavior: "smooth" }),
+      },
+      {
         id: "arch-modal",
         group: "PromptWars",
         label: "Inspect AI Prompt Pipeline & Injection Guard",
@@ -180,6 +188,9 @@ export default function ScamShieldHome() {
         liveGeminiReady={liveGeminiReady}
         soundEnabled={scanner.soundEnabled}
         onToggleSound={() => scanner.setSoundEnabled((prev) => !prev)}
+        onOpenSuspectLookup={() =>
+          document.getElementById("suspect-lookup")?.scrollIntoView({ behavior: "smooth" })
+        }
         onOpenArchitecture={() => setArchModalOpen(true)}
         onOpenSettings={() => setKeyModalOpen(true)}
         onOpenPalette={() => setPaletteOpen(true)}
@@ -258,6 +269,8 @@ export default function ScamShieldHome() {
             onDownloadReport={handleDownloadReport}
           />
         </section>
+
+        <SuspectLookupPanel onToast={showToast} />
 
         <RecentScansBar history={scanner.history} onSelect={scanner.restoreHistoryItem} />
       </main>

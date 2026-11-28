@@ -1,12 +1,13 @@
 "use client";
 
-import { Command, Cpu, KeyRound, ShieldAlert, Volume2, VolumeX } from "lucide-react";
+import { Command, Cpu, KeyRound, ShieldAlert, ShieldCheck, Volume2, VolumeX } from "lucide-react";
 
 interface HeaderNavProps {
   engineName: string;
   liveGeminiReady: boolean;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  onOpenSuspectLookup: () => void;
   onOpenArchitecture: () => void;
   onOpenSettings: () => void;
   onOpenPalette: () => void;
@@ -20,6 +21,7 @@ export function HeaderNav({
   liveGeminiReady,
   soundEnabled,
   onToggleSound,
+  onOpenSuspectLookup,
   onOpenArchitecture,
   onOpenSettings,
   onOpenPalette,
@@ -46,6 +48,15 @@ export function HeaderNav({
         </div>
 
         <nav aria-label="Workspace actions" className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenSuspectLookup}
+            className="glass-pill hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-200"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" aria-hidden="true" />
+            Suspect Check
+          </button>
+
           <button
             type="button"
             onClick={onOpenArchitecture}
