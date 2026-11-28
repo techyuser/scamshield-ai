@@ -43,12 +43,15 @@ export interface ImageAttachment {
 }
 
 const INITIAL_DEMO = DEMO_CASES[0];
-const INITIAL_RESULT: AnalyzeResult = analyzeMessageDeterministic({
-  message: INITIAL_DEMO.message,
-  channel: INITIAL_DEMO.channel,
-  senderInfo: INITIAL_DEMO.senderInfo,
-  language: "en",
-});
+const INITIAL_RESULT: AnalyzeResult = {
+  ...analyzeMessageDeterministic({
+    message: INITIAL_DEMO.message,
+    channel: INITIAL_DEMO.channel,
+    senderInfo: INITIAL_DEMO.senderInfo,
+    language: "en",
+  }),
+  latencyMs: 2,
+};
 
 /**
  * Encapsulates ScamShield AI scanning state, request cancellation, validation, history, and export helpers.

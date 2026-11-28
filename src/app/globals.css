@@ -9,7 +9,9 @@ body {
   background-color: var(--bg-obsidian);
   color: #f4f4f6;
   font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
-  scroll-behavior: smooth;
+  overflow-x: clip;
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
 }
 
 code,
@@ -108,11 +110,73 @@ pre,
   animation: floatOrb 14s ease-in-out infinite;
 }
 
+@keyframes mobileTabSlideLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes mobileTabSlideRight {
+  from {
+    opacity: 0;
+    transform: translate3d(-18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes mobileCardRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.mobile-tab-enter-forward {
+  animation: mobileTabSlideLeft 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+.mobile-tab-enter-back {
+  animation: mobileTabSlideRight 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+.mobile-card-enter {
+  animation: mobileCardRise 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* On mobile WebView, avoid costly multi-layer backdrop-filter passes during scroll */
+.mobile-app-shell .vibe-card,
+.mobile-app-shell .glass-pill,
+.mobile-app-shell [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.mobile-app-shell .vibe-card {
+  background: linear-gradient(180deg, rgba(20, 24, 42, 0.94) 0%, rgba(12, 15, 28, 0.96) 100%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  .ambient-orb {
+  .ambient-orb,
+  .mobile-tab-enter-forward,
+  .mobile-tab-enter-back,
+  .mobile-card-enter {
     animation: none;
   }
   .vibe-card,

@@ -1,4 +1,9 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+kotlin {
+    jvmToolchain(21)
+}
 
 android {
     namespace = "com.scamshield.ai"

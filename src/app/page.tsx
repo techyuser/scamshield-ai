@@ -13,6 +13,7 @@ import { RecentScansBar } from "@/components/RecentScansBar";
 import { RedFlagPanel } from "@/components/RedFlagPanel";
 import { SuspectLookupPanel } from "@/components/SuspectLookupPanel";
 import { VerdictBanner } from "@/components/VerdictBanner";
+import MobileAppPage from "@/app/mobile/page";
 import { useScamScanner } from "@/hooks/useScamScanner";
 import { formatFamilyWarningAlert } from "@/lib/localized-guidance";
 import { DEMO_CASES } from "@/lib/scenarios";
@@ -25,6 +26,7 @@ export default function ScamShieldHome() {
   const [keyModalOpen, setKeyModalOpen] = useState(false);
   const [archModalOpen, setArchModalOpen] = useState(false);
   const [seniorMode, setSeniorMode] = useState(false);
+  const [isCapacitorNative, setIsCapacitorNative] = useState(false);
   const [copiedReply, setCopiedReply] = useState(false);
   const [copiedAlert, setCopiedAlert] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -37,6 +39,13 @@ export default function ScamShieldHome() {
     setToast(msg);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  useEffect(() => {
+    const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+    if (cap?.isNativePlatform?.()) {
+      setIsCapacitorNative(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -203,6 +212,10 @@ export default function ScamShieldHome() {
       : liveGeminiReady
       ? "Gemini Ready"
       : "Smart Hybrid";
+
+  if (isCapacitorNative) {
+    return <MobileAppPage />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

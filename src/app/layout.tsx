@@ -41,16 +41,25 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        {/* Soft Atmospheric Glassmorphism Blurs */}
+        {/* Soft Atmospheric Glassmorphism Glows (GPU-lightweight radial gradients) */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="ambient-orb absolute top-[-18%] left-[12%] w-[560px] h-[560px] rounded-full bg-violet-600/22 blur-[150px]" />
           <div
-            className="ambient-orb absolute top-[18%] right-[-8%] w-[480px] h-[480px] rounded-full bg-cyan-500/18 blur-[150px]"
-            style={{ animationDelay: "-5s" }}
+            className="absolute top-[-18%] left-[12%] w-[560px] h-[560px] rounded-full opacity-45"
+            style={{
+              background: "radial-gradient(circle, rgba(124,58,237,0.38) 0%, rgba(124,58,237,0) 70%)",
+            }}
           />
           <div
-            className="ambient-orb absolute bottom-[-20%] left-[32%] w-[520px] h-[520px] rounded-full bg-indigo-500/16 blur-[160px]"
-            style={{ animationDelay: "-9s" }}
+            className="absolute top-[18%] right-[-8%] w-[480px] h-[480px] rounded-full opacity-40"
+            style={{
+              background: "radial-gradient(circle, rgba(6,182,212,0.34) 0%, rgba(6,182,212,0) 70%)",
+            }}
+          />
+          <div
+            className="absolute bottom-[-20%] left-[32%] w-[520px] h-[520px] rounded-full opacity-35"
+            style={{
+              background: "radial-gradient(circle, rgba(99,102,241,0.32) 0%, rgba(99,102,241,0) 70%)",
+            }}
           />
         </div>
         {children}
